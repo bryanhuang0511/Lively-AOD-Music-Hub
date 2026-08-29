@@ -1,115 +1,48 @@
-# 🌌 Desktop AOD Cyberpunk Music Hub (Lively Wallpaper)
-> **全域桌面 AOD 音樂中樞：動態流光共振器 × 實時歌詞滾動 × BABYMONSTER 惡魔黑紅科技美學**
+# 🎵 音樂AOD電腦桌布視覺播放器 (v1.0.0)
+
+> **作品名稱**：音樂AOD電腦桌布視覺播放器  
+> **作者**：原來如此>_<  
+> **版本**：v1.0.0 (Pristine Base Release)  
+> **適用平台**：Windows 10 / 11 ✖ Lively Wallpaper ✖ WebView2  
+> **授權協議**：MIT License  
 
 ---
 
-## 📖 專案願景 (Vision & Concept)
+## 📖 專案簡介 (Overview)
 
-將手機端頂級的 **Always-On-Display (AOD) 音樂播放器體驗** 完整移植並升級至 PC 桌面！
-
-藉由 **Lively Wallpaper** 強大的 WebGL / Canvas / Web Audio 硬體加速引擎，徹底解放 NVIDIA RTX 4060 顯卡的渲染效能，告別 Rainmeter 向量筆觸的生硬限制，實現**真正的次像素 GPU 高斯發光（True Bloom）、流體波浪角向推進、實時動態滾動歌詞與懸浮星塵微粒**！
-
----
-
-## 🎨 核心模組架構設計 (System Architecture)
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        🌌 Desktop AOD Canvas Layer                      │
-│                                                                        │
-│   ✨ 飄渺暗黑星塵微粒系統 (Ambient Embers & Space Dust Particle System)    │
-│                                                                        │
-│                      😈 雙獨立流體惡魔翼瓣 (Fluid Demon Wings)           │
-│                     ╭───────────────────────────╮                      │
-│                    │    BM 惡魔徽章 / 專輯封面    │                      │
-│                    │     (808 Sub-Bass 共振跳動) │                      │
-│                     ╰───────────────────────────╯                      │
-│                                                                        │
-│                 🎵 歌曲資訊：BABYMONSTER - SHEESH                      │
-│               [ 01:24 ━━━━━━━━━●────────────────── 02:58 ]             │
-│                                                                        │
-│              🌟 實時流光滾動歌詞引擎 (Live Glowing Synced Lyrics)       │
-│           " Got them all jumping, making them SHEESH "                 │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
-```
+專為 Windows PC 打造的**極致純黑（OLED AOD）黑曜石液態玻璃音樂視覺播放器**。
+以純黑背景（`#000000`）為基底，結合物理級周長弧長積分雷射光軌、Rainmeter 專屬 14 倍動態速差調速引擎、以及 3 行光學景深同步滾動歌詞，提供 24/7 常駐且「0% GPU 待機負載」的極致視覺體驗。
 
 ---
 
-## 🚀 四大核心功能模組
+## 🌟 核心特性 (Key Features)
 
-### 1. 😈 雙獨立流體惡魔翼瓣 (Dual-Wing Fluid Resonator)
-- **角向波包位移推進（Angular Wave Propagation）**：
-  - 音訊節奏落下時，能量波包自水平軸（$180^\circ$ 與 $0^\circ$）點火；
-  - 波峰沿著外緣圓弧向上滑動位移至雙耳頂點（$240^\circ$ 與 $300^\circ$）；
-  - 順著內側斜坡向頂部中央（$270^\circ$）匯聚收斂，以極致俐落的 V 型切口**100% 貼死在中央圓環 $(CX, CY - R)$（間距精準為 0）**！
-- **真 GPU 次像素柔和發光（True Bloom & Feathering）**：
-  - 多層高斯模糊（Gaussian Blur）與發光著色器，徹底告別生硬線框，呈現如液體火焰般向外暈開的頂級質感。
-- **下半圓嚴格零面積**：
-  - 下方（$0^\circ \sim 180^\circ$）維持純淨圓弧，完全無臃腫贅肉。
-
-### 2. 🌟 實時動態滾動歌詞引擎 (Live Synced Lyrics Engine)
-- **智慧同步滾動**：
-  - 支援 LRC 格式實時解析與時間軸精準對齊；
-  - 當前句以純白/緋紅高光放大置中，上一句與下一句帶有漸層半透明景深景散（Depth of Field）；
-- **卡拉 OK 流光特效**：
-  - 文字伴隨音樂節奏產生細微的光暈波動與粒子溢出效果。
-
-### 3. 🎵 智慧音訊中樞與專輯呼吸 (Smart Audio Hub & Bass Resonator)
-- **Lively Audio API 深度整合**：
-  - 原生掛載 `window.livelyAudioListener(audioArray)`，實時捕獲 Windows 系統 128 頻段音訊流；
-- **808 重低音呼吸跳動**：
-  - 中央圓形 BM 徽章 / 專輯封面依據 Sub-Bass 能量等比擴散呼吸。
-
-### 4. 🌌 沉浸式暗黑星塵背景 (Ambient Space Dust & Embers)
-- 背景點綴極慢速漂浮的微光火星與星塵粒子；
-- 重低音大鼓炸裂時，背景伴隨微幅的全局深緋色環境光呼吸（Subtle Ambient Flash）。
+1. **💎 1.2X 純黑黑曜石液態玻璃 (Deep Obsidian Glass)**：
+   - 移除所有多餘雜質與灰色夾層，呈現深邃純黑晶體質感，內建動態液態鏡面折射光澤（Specular Sheen）。
+2. **🌌 物理周長等弧長雷射光軌 (AuraBeamEngine)**：
+   - 徹底解決極坐標拉伸與縮短畸變，在直線與轉彎處**100% 絕對鎖定為 500px 恆定長度**。
+   - 單一路徑向量漸層渲染，**0 圓點、0 鋸齒階梯、兩端自然消隱**。
+3. **🎛️ Rainmeter `AudioLevel` 14.1 倍動態調速 (DSP Engine)**：
+   - **30ms 瞬態爆發 (Attack)**：重低音大鼓 Kick 下潛瞬間飆速至 $1345 \sim 1665\text{ px/s}$。
+   - **330ms 慣性滑行 (Decay)**：鼓點過後平滑指數衰減回 $95\text{ px/s}$ 舒緩巡航。
+4. **🎤 3 行光學景深同步歌詞 (LyricsEngine)**：
+   - **0ms 根節點極速銷毀**：換曲瞬間第 0 毫秒秒清舊歌，徹底消滅畫面重疊。
+   - **首句即時時間戳對齊**：新歌下載完成瞬間即刻對齊，絕不錯過第 1 秒歌詞。
+   - **尾奏 100% 純黑消隱**：最後一句唱完 4 秒後自動全數淡出，螢幕乾淨純黑無殘影。
+5. **⚡ 0% 零負載硬體加速**：
+   - 純原生 HTML5 + Vanilla CSS3 + Canvas 2D，常駐記憶體僅約 30MB，CPU/GPU 佔用近乎 0.0%。
 
 ---
 
-## 🎨 色彩與設計規範 (Design Tokens)
+## 📚 開發架構與維護指南 (Documentation)
 
-| 代號 | 色彩名稱 | HEX / RGBA | 用途說明 |
-| :--- | :--- | :--- | :--- |
-| **Obsidian** | 曜石深黑 | `#0A0B0E` / `rgba(10, 11, 14, 1.0)` | 全局背景基底與陰影沉積 |
-| **Crimson** | 血月深緋 | `#D70A1E` / `rgba(215, 10, 30, 0.85)` | 翼瓣主體流體漸層與光暈充填 |
-| **Demon Red**| 惡魔熾紅 | `#FF192D` / `rgba(255, 25, 45, 1.0)` | 波峰邊緣發光與脈衝高光 |
-| **Platinum** | 鈦金純白 | `#FFFFFF` / `rgba(255, 255, 255, 0.95)` | 科技激光骨架、當前焦點歌詞 |
-| **Dark Smoke**| 冥府血霧 | `rgba(140, 0, 10, 0.35)` | 外層漫射發光羽化層（Bloom Layer） |
+詳細的物理公式推導、DSP 調速演算法、模組職責及未來二開注意事項，請詳閱：
+👉 **[ARCHITECTURE_AND_MAINTENANCE_GUIDE.md](file:///c:/Users/yexia/Documents/ShihWei/NTNU/GitHub/視覺動態效果/PC/Lively_AOD_Music_Hub/ARCHITECTURE_AND_MAINTENANCE_GUIDE.md)**
 
 ---
 
-## 📁 專案檔案結構 (Project Structure)
+## 🚀 安裝與使用 (Installation)
 
-```text
-Lively_AOD_Music_Hub/
-├── README.md               # 本架構藍圖主檔
-├── LivelyInfo.json         # Lively Wallpaper 桌面設定檔
-├── index.html              # 桌面 AOD 主畫布頁面
-├── css/
-│   └── style.css           # 科技感 AOD 排版、歌詞發光與動畫樣式
-├── js/
-│   ├── app.js              # 主應用入口與初始化
-│   ├── audio_listener.js   # Lively Audio API 128 頻段監聽引擎
-│   ├── demon_visualizer.js # WebGL/Canvas 2D 雙翼流體波包渲染器
-│   ├── lyrics_engine.js    # 實時歌詞滾動與解析引擎
-│   └── particles.js        # 暗黑星塵微粒系統
-└── assets/
-    ├── BM.jpg              # 中央預設 BABYMONSTER 徽章
-    ├── demo_track.mp3      # 預覽示範音訊 (選用)
-    └── demo_lyrics.lrc     # 示範同步歌詞檔案 (選用)
-```
-
----
-
-## 🛠️ 執行與部署指引 (Deployment Guide)
-
-1. **本機瀏覽器即時預覽 / 調校**：
-   - 雙擊開啟 `index.html`，支援直接拖入本機 MP3 與 LRC 檔案進行全功能即時視聽測試。
-2. **導入 Lively Wallpaper**：
-   - 開啟 **Lively Wallpaper** 軟體；
-   - 點擊「新增桌布（Add Wallpaper）」➜ 直接將 `Lively_AOD_Music_Hub` 資料夾拖入；
-   - 立即享受 RTX 4060 硬體加速的 144FPS 全域桌面 AOD 音樂盛宴！
-
----
-*Created by Antigravity & Partner for the Ultimate Desktop Music Experience 🌟🔥*
+1. 安裝並啟動 [Lively Wallpaper](https://rocksdanister.github.io/lively/)。
+2. 將打包好的 `Lively_AOD_Music_Hub.zip` 直接拖入 Lively Wallpaper 視窗中。
+3. 在庫中點擊 **「音樂AOD電腦桌布視覺播放器」** 即可套用為全域動態桌布！

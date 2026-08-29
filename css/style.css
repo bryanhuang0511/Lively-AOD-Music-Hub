@@ -1,0 +1,356 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Rajdhani:wght@600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap');
+
+/* ==========================================================================
+   1. Sci-Fi Liquid Glass AOD Design Tokens & Typography
+   ========================================================================== */
+:root {
+  --bg-base: #000000;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.45);
+  --text-dim: rgba(255, 255, 255, 0.25);
+  
+  /* 🌟 Modern Geometric Tech Typography: Plus Jakarta Sans */
+  --font-title: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
+  --font-artist: 'Plus Jakarta Sans', sans-serif;
+  --font-lyrics: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
+  --font-mono: 'Space Grotesk', monospace;
+
+  /* Google AI Open Trailing Arc Defaults (與 HTML 展示原型速度一致) */
+  --flow-duration: 5.5s;
+  --specular-duration: 6.0s;
+  --rgb-opacity: 0.85;
+  --rgb-blur: 10px;
+}
+
+/* Enable Houdini Angle Property for 100% Smooth Clockwise Arc Rotation */
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  font-family: var(--font-lyrics);
+}
+
+/* 1. Pure Pitch-Black Ambient Canvas Layer */
+#bgCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 2. Central Liquid Glass AOD Hub (以螢幕中心 1.2X 放大並微避開頂部工作列) */
+.liquid-aod-hub {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 36px);
+  transform: translate(-50%, -50%) scale(1.2);
+  transform-origin: center center;
+  z-index: 10;
+  width: 85%;
+  max-width: 1400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: auto;
+  background: transparent;
+}
+
+/* ==========================================================================
+   3. 1.2X Enriched Deep Obsidian Liquid Glass Capsule with Open Chasing Arc
+   ========================================================================== */
+.liquid-glass-capsule-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 50px;
+  flex-shrink: 0;
+  max-width: 95%;
+  border-radius: 70px;
+  background: transparent;
+  padding: 0;
+}
+
+/* 🌟 Constant-Perimeter-Arc-Length Google Chroma Canvas (等弧長、等線速、毛邊羽化彗星) */
+.rgb-aura-canvas {
+  position: absolute;
+  top: -24px;
+  left: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  pointer-events: none;
+  z-index: 4;
+  will-change: transform;
+}
+
+/* 💎 1.2X Pure Liquid Obsidian Glass Capsule (純粹深邃透亮黑曜石液態玻璃) */
+.liquid-glass-capsule {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 20px 46px; /* 1.2X scale */
+  border-radius: 70px;
+  background: rgba(3, 4, 7, 0.96);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.20),
+    inset 0 0 25px rgba(0, 0, 0, 0.95),
+    0 16px 48px rgba(0, 0, 0, 0.95);
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* 🌟 Dynamic Moving Specular Sheen (絲滑液態光澤折射掃掠) */
+.liquid-specular-beam {
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 50%;
+  height: 220%;
+  background: linear-gradient(
+    65deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.0) 30%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(255, 255, 255, 0.0) 70%,
+    transparent 100%
+  );
+  transform: rotate(22deg);
+  animation: specularSweep 5.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+  will-change: transform, opacity;
+}
+
+@keyframes specularSweep {
+  0% {
+    transform: translateX(-120%) rotate(22deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(450%) rotate(22deg);
+    opacity: 0;
+  }
+}
+
+/* Song Title in Capsule (1.2X: 42px, 100% Rock-Solid, No Vibration) */
+.capsule-title {
+  font-family: var(--font-title);
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 680px;
+  text-shadow: 0 1px 12px rgba(255, 255, 255, 0.35);
+  position: relative;
+  z-index: 2;
+}
+
+/* Glass Dot Divider */
+.capsule-divider {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 26px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Artist Name in Capsule (1.2X: 29px, 100% Rock-Solid, No Vibration) */
+.capsule-artist {
+  font-family: var(--font-artist);
+  font-size: 29px;
+  font-weight: 600;
+  letter-spacing: 2.8px;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 440px;
+  position: relative;
+  z-index: 2;
+}
+
+/* 1.2X Pure Symbol Status Badge (No Chinese Words) */
+.capsule-status-badge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.capsule-status-badge.playing {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.capsule-status-badge.paused {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.status-icon {
+  font-size: 19px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   4. Rock-Solid Optical Depth-of-Field 3-Line Lyrics (Zero Shaking / Zero Flickering)
+   ========================================================================== */
+.lyrics-viewport {
+  position: relative;
+  width: 100%;
+  max-width: 1600px;
+  height: 300px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+/* Moving Track Container (Hardware Accelerated GPU Motion) */
+.lyrics-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  transition: transform 0.48s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* Individual Continuous Lyric Line (0.8X 精簡縮小版：保持膠囊醒目，歌詞精緻易讀) */
+.lyric-line {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--font-lyrics);
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.32;
+  cursor: pointer;
+  
+  /* 🚀 2K 144Hz Dedicated GPU Hardware Compositing Layer */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
+  will-change: transform, opacity, filter;
+  
+  /* 0.8X Base Font Size (22px ~ 35px) */
+  font-size: clamp(22px, 2.5vw, 35px);
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  
+  /* Default: Far-distance faded & blurred */
+  opacity: 0.08;
+  filter: blur(6px);
+  transform: translateZ(0) scale(0.75);
+  transform-origin: center center;
+  color: rgba(255, 255, 255, 0.3);
+  transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease, color 0.45s ease;
+}
+
+/* 上一句 (Prev Line: 柔和中度景深虛化、零晃動、零閃爍) */
+.lyric-line.is-prev {
+  opacity: 0.38;
+  filter: blur(3.0px);
+  transform: translateZ(0) scale(0.85);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* 當前句 (Active Line: 居中 1.15X 聚焦放大、清晰高光、零抖動) */
+.lyric-line.is-active {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateZ(0) scale(1.15);
+  color: #ffffff;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+/* 下一句 (Next Line: 柔和中度景深虛化、零晃動、零閃爍) */
+.lyric-line.is-next {
+  opacity: 0.38;
+  filter: blur(3.0px);
+  transform: translateZ(0) scale(0.85);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* 懸浮時取消虛化 */
+.lyric-line:hover {
+  opacity: 0.9;
+  filter: blur(0px);
+}
+
+/* 🌌 結尾尾奏完全淡出（100% 純黑無殘影） */
+.lyric-line.is-outro-faded {
+  opacity: 0 !important;
+  filter: none !important;
+  pointer-events: none !important;
+  transform: translateZ(0) scale(0.7) !important;
+  transition: opacity 0.8s ease, filter 0.8s ease, transform 0.8s ease !important;
+}
