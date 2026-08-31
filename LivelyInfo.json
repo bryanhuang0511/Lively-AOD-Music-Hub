@@ -1,9 +1,9 @@
 {
-  "AppVersion": "1.0.0.0",
-  "Title": "音樂AOD電腦桌布視覺播放器",
+  "AppVersion": "1.1.0.0",
+  "Title": "音樂AOD電腦桌布視覺播放器 (星空曲速版)",
   "Thumbnail": "assets/preview.png",
   "Preview": "assets/preview.png",
-  "Desc": "極致純黑黑曜石液態玻璃 AOD 音樂視覺播放器：純黑背景 × 1.2倍放大 × 恆定弧長 Google Chroma 雷射光軌 × Rainmeter 14倍速階 DSP 調速 × 3行光學景深歌詞 × 0% GPU 零負載",
+  "Desc": "極致純黑星空曲速 AOD 音樂視覺播放器 (v1.1.0)：低密度星空待機漫遊 × 重低音中心放射時空穿梭流線 × 恆定弧長 Google Chroma 雷射光軌 × 3行光學景深歌詞 × 0% GPU 待機低負載",
   "Author": "原來如此>_<",
   "License": "MIT",
   "Contact": "",

@@ -43,58 +43,65 @@ class LyricsEngine {
   resetStandbyDisplay() {
     this.cancelActiveRequests();
     this.sessionId++;
-    this.lyrics = [];
-    this.currentIndex = -1;
+    this.lyrics = [
+      { time: 0, text: '🌌 AOD MUSIC HUB • 星空時空穿梭版' },
+      { time: 5, text: '🎵 播放音樂時自動同步歌詞與動態律動' },
+      { time: 10, text: '✨ 支援 Windows 系統全域媒體與在線搜尋' }
+    ];
+    this.currentIndex = 1;
     this.currentTrackQuery = '';
     this.offset = 0.0;
     this.trackDuration = 210;
 
     if (this.track) {
-      this.track.innerHTML = '<div class="lyric-line is-active">🎵 播放音樂時自動同步歌詞</div>';
+      this.track.innerHTML = `
+        <div class="lyric-line is-prev">🌌 AOD MUSIC HUB • 星空時空穿梭版</div>
+        <div class="lyric-line is-active">🎵 播放音樂時自動同步歌詞與動態律動</div>
+        <div class="lyric-line is-next">✨ 支援 Windows 系統全域媒體與在線搜尋</div>
+      `;
       this.track.style.transition = 'none';
       this.track.style.transform = 'translateY(110px)';
-      const singleLine = this.track.querySelector('.lyric-line');
-      if (singleLine) {
-        singleLine.style.setProperty('--wipe-progress', '100%');
-      }
     }
   }
 
   setPausedDisplay() {
-    // Keep current display static
+    // Keep current 3-line display static in paused state
   }
 
   setAudioOnlyDisplay(title = '') {
     this.cancelActiveRequests();
     this.sessionId++;
-    this.lyrics = [];
-    this.currentIndex = -1;
+    const displayTitle = title ? title : '純音訊即時律動';
+    this.lyrics = [
+      { time: 0, text: `🎵 ${displayTitle}` },
+      { time: 6, text: '🌌 隨重低音脈衝觸發時空穿梭曲速' },
+      { time: 12, text: '✨ 恆定弧長雷射光軌 ✖ 0% GPU 待機低負載' },
+      { time: 18, text: '🎧 享受深邃黑曜石液態玻璃音樂體驗' }
+    ];
+    this.currentIndex = 0;
     this.currentTrackQuery = '';
     this.offset = 0.0;
+    this.trackDuration = 240;
 
-    if (this.track) {
-      this.track.innerHTML = `<div class="lyric-line is-active">🎵 ${title ? title + ' (純音樂律動)' : '純音樂律動中'}</div>`;
-      this.track.style.transition = 'none';
-      this.track.style.transform = 'translateY(110px)';
-      const singleLine = this.track.querySelector('.lyric-line');
-      if (singleLine) {
-        singleLine.style.setProperty('--wipe-progress', '100%');
-      }
-    }
+    this.renderTrackDOM();
+    this.scrollToIndex(0, false);
   }
 
   setNoLyricsDisplay(cleanTitle = '') {
-    this.lyrics = [];
-    this.currentIndex = -1;
-    if (this.track) {
-      this.track.innerHTML = `<div class="lyric-line is-active">🎵 ${cleanTitle ? cleanTitle + ' (純音樂律動)' : '純音樂律動中'}</div>`;
-      this.track.style.transition = 'none';
-      this.track.style.transform = 'translateY(110px)';
-      const singleLine = this.track.querySelector('.lyric-line');
-      if (singleLine) {
-        singleLine.style.setProperty('--wipe-progress', '100%');
-      }
-    }
+    this.sessionId++;
+    const songName = cleanTitle || '當前播放曲目';
+    this.lyrics = [
+      { time: 0, text: `🎵 ${songName}` },
+      { time: 6, text: '🌌 隨重低音脈衝觸發時空穿梭曲速' },
+      { time: 12, text: '✨ 恆定弧長雷射光軌 ✖ 0% GPU 待機低負載' },
+      { time: 18, text: '🎧 享受深邃黑曜石液態玻璃音樂體驗' },
+      { time: 24, text: '🛸 AOD Music Hub • 沉浸式視覺音訊' }
+    ];
+    this.currentIndex = 0;
+    this.trackDuration = 240;
+
+    this.renderTrackDOM();
+    this.scrollToIndex(0, false);
   }
 
   /**

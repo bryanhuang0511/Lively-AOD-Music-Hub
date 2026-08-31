@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     trackTransitionUntil = 0;
     currentBass = 0.0;
     currentMid = 0.0;
+    currentTreble = 0.0;
 
     if (trackTitle) trackTitle.textContent = 'STANDBY';
     if (trackArtist) trackArtist.textContent = 'AOD MUSIC HUB';
@@ -52,13 +53,23 @@ document.addEventListener('DOMContentLoaded', () => {
       capsuleWrapper.style.setProperty('--rgb-opacity', '0.55');
       capsuleWrapper.style.setProperty('--specular-duration', '7.5s');
     }
+    if (starfieldEngine) {
+      starfieldEngine.updateAudio(0, 0, 0, false);
+    }
   }
-  initCleanStandby();
 
   // 3. Initialize Engines
-  const bgEngine = new BackgroundShaderEngine('bgCanvas');
+  const starfieldEngine = new StarfieldEngine('bgCanvas', {
+    starCount: 110,
+    idleSpeed: 0.45,
+    warpMaxSpeed: 32.0,
+    warpTrailFactor: 1.8,
+    starBaseRadius: 2.2
+  });
   const lyricsEngine = new LyricsEngine();
   const auraBeamEngine = new AuraBeamEngine('auraCanvas', 'glassCapsule');
+
+  initCleanStandby();
 
   // Expose global seek function for clicking lyric lines
   window.seekToTime = (targetTime) => {
@@ -95,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentBass = bass;
         currentMid = mid;
+        currentTreble = treble;
 
         if (currentEnergy > 0.003) {
           lastAudioTime = now;
@@ -108,6 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
             lyricsEngine.setAudioOnlyDisplay();
           }
 
+        }
+
+        // 🌌 即時更新星空引擎能量
+        if (starfieldEngine) {
+          starfieldEngine.updateAudio(bass, mid, treble, isPlaying && !isPaused);
         }
       } catch (e) {
         console.warn('Audio update handled safely:', e);
@@ -203,6 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
     lastFrameTime = now;
+
+    // 🌌 StarfieldEngine: 渲染動態星空背景 (待機漂移 / 重低音曲速穿梭)
+    if (starfieldEngine) {
+      starfieldEngine.render(dt);
+    }
 
     // 🌟 AuraBeamEngine: 100% 視覺等弧長 (長邊不拉長、圓角不縮短) ✖ 等線速 ✖ 音樂節奏調速
     if (auraBeamEngine) {

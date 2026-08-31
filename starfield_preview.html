@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌌 Lively AOD v1.1.0 星空時空穿梭版 - 即時視覺預覽 (Starfield Warp Preview)</title>
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <style>
+    /* 🌟 Preview Control Deck Styling (Glassmorphism Floating Control) */
+    .preview-control-deck {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
+      background: rgba(10, 14, 24, 0.78);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 18px 22px;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
+      width: 380px;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+      user-select: none;
+    }
+
+    .preview-control-deck.collapsed {
+      transform: translateY(calc(100% - 48px));
+      opacity: 0.85;
+    }
+
+    .deck-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .deck-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #90caf9;
+    }
+
+    .deck-toggle-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #ffffff;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .deck-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: rgba(255, 255, 255, 0.9);
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .preset-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .preset-btn.active {
+      background: linear-gradient(135deg, rgba(66, 133, 244, 0.45), rgba(156, 39, 176, 0.45));
+      border-color: rgba(144, 202, 249, 0.8);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(66, 133, 244, 0.4);
+    }
+
+    .control-row {
+      margin-bottom: 12px;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .control-label span.val {
+      color: #90caf9;
+      font-family: 'Space Grotesk', monospace;
+    }
+
+    .control-slider {
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    .control-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #90caf9;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(144, 202, 249, 0.8);
+      transition: transform 0.15s;
+    }
+    .control-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    .deck-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .deck-action-btn {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .deck-action-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+
+    /* Version Badge */
+    .v11-badge {
+      position: fixed;
+      top: 24px;
+      left: 28px;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 30px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .v11-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00e676;
+      box-shadow: 0 0 10px #00e676;
+      animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+    }
+  </style>
+
+  <!-- Core Scripts -->
+  <script src="js/audio_listener.js"></script>
+  <script src="js/starfield_engine.js"></script>
+  <script src="js/aura_beam.js"></script>
+  <script src="js/lyrics_engine.js"></script>
+</head>
+<body>
+
+  <!-- 🌌 Starfield Warp Background Canvas -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- Version Header Badge -->
+  <div class="v11-badge">
+    <span class="dot"></span>
+    <span>v1.1.0 PREVIEW • 星空時空穿梭版</span>
+  </div>
+
+  <!-- Central AOD Hub -->
+  <main class="liquid-aod-hub" id="centerHub">
+    
+    <!-- 🔮 Liquid Glass Capsule with Google Chroma Aura -->
+    <div class="liquid-glass-capsule-wrapper" id="capsuleWrapper">
+      <!-- 🌟 Google Chroma Canvas Rim -->
+      <canvas class="rgb-aura-canvas" id="auraCanvas"></canvas>
+
+      <!-- Core Deep Obsidian Sci-Fi Liquid Glass Capsule Pill -->
+      <header class="liquid-glass-capsule" id="glassCapsule">
+        <!-- 🌟 Dynamic Moving Specular Glass Sheen Sweep -->
+        <div class="liquid-specular-beam" id="specularBeam"></div>
+
+        <!-- Song Title -->
+        <span class="capsule-title" id="trackTitle">STARFIELD WARP</span>
+        
+        <!-- Subtle Glass Divider -->
+        <span class="capsule-divider">•</span>
+
+        <!-- Artist Name -->
+        <span class="capsule-artist" id="trackArtist">INTERSTELLAR DRIFT</span>
+
+        <!-- Play/Pause Status Symbol Badge -->
+        <div class="capsule-status-badge playing" id="playStatusBadge" title="播放狀態">
+          <span class="status-icon" id="statusIcon">▶</span>
+        </div>
+      </header>
+    </div>
+
+    <!-- 🎵 4. Silky Continuous Conveyor Lyrics Viewport -->
+    <section class="lyrics-viewport" id="lyricsViewport">
+      <div class="lyrics-track" id="lyricsTrack">
+        <div class="lyric-line is-prev">🌌 星空背景稀疏點位 • 待機悠閒慢速漂移</div>
+        <div class="lyric-line is-active">🚀 音樂震動重低音爆發 • 時空穿梭流線噴射</div>
+        <div class="lyric-line is-next">🌊 音樂暫停或減弱 • 平滑慣性阻尼放慢</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 🎛️ Preview Control & Simulation Deck -->
+  <div class="preview-control-deck" id="controlDeck">
+    <div class="deck-header" id="deckHeader">
+      <div class="deck-title">
+        <span>🌌</span>
+        <span>星空視覺特效調校面板</span>
+      </div>
+      <button class="deck-toggle-btn" id="deckToggleBtn" title="縮小/展開面板">▼</button>
+    </div>
+
+    <div class="deck-content" id="deckContent">
+      <div class="preset-grid">
+        <button class="preset-btn active" id="btnPresetIdle" data-mode="idle">🪐 待機漂移</button>
+        <button class="preset-btn" id="btnPresetWaltz" data-mode="waltz">✨ 舒緩星光</button>
+        <button class="preset-btn" id="btnPresetPop" data-mode="pop">🎵 流行節奏</button>
+        <button class="preset-btn" id="btnPresetEDM" data-mode="edm">⚡ 重低音曲速</button>
+      </div>
+
+      <!-- Controls -->
+      <div class="control-row">
+        <div class="control-label">
+          <span>動態音訊能量 (Simulated Beat)</span>
+          <span class="val" id="valEnergy">0%</span>
+        </div>
+        <input type="range" class="control-slider" id="sliderEnergy" min="0" max="100" value="0">
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>星星大小 (待機亮度與可見度)</span>
+          <span class="val" id="valStarSize">1.8X</span>
+        </div>
+        <input type="range" class="control-slider" id="sliderStarSize" min="10" max="35" value="18">
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>星星密度 (點位稀疏度)</span>
+          <span class="val" id="valStarCount">110 顆</span>
+        </div>
+        <input type="range" class="control-slider" id="sliderStarCount" min="40" max="260" value="110">
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>時空穿梭極限速度 (Warp Speed)</span>
+          <span class="val" id="valWarpSpeed">32.0</span>
+        </div>
+        <input type="range" class="control-slider" id="sliderWarpSpeed" min="10" max="60" value="32">
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>流線尾翼長度 (Trail Factor)</span>
+          <span class="val" id="valTrail">1.8X</span>
+        </div>
+        <input type="range" class="control-slider" id="sliderTrail" min="5" max="35" value="18">
+      </div>
+
+      <div class="deck-actions">
+        <button class="deck-action-btn" id="btnTogglePlay">⏯️ 切換 播放/暫停</button>
+        <button class="deck-action-btn" id="btnToggleLyrics">🔤 模擬切換歌詞</button>
+        <button class="deck-action-btn" id="btnFullscreen">⛶ 全螢幕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Preview Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Initialize Engines
+      const starfield = new StarfieldEngine('bgCanvas', {
+        starCount: 110,
+        idleSpeed: 0.45,
+        warpMaxSpeed: 32.0,
+        warpTrailFactor: 1.8,
+        starBaseRadius: 2.2
+      });
+
+      const auraBeam = new AuraBeamEngine('auraCanvas', 'glassCapsule');
+
+      // State
+      let currentMode = 'idle'; // 'idle', 'waltz', 'pop', 'edm', 'manual'
+      let isPlaying = true;
+      let beatPhase = 0;
+      let lastTime = performance.now();
+
+      // DOM Elements
+      const sliderEnergy = document.getElementById('sliderEnergy');
+      const valEnergy = document.getElementById('valEnergy');
+      const sliderStarSize = document.getElementById('sliderStarSize');
+      const valStarSize = document.getElementById('valStarSize');
+      const sliderStarCount = document.getElementById('sliderStarCount');
+      const valStarCount = document.getElementById('valStarCount');
+      const sliderWarpSpeed = document.getElementById('sliderWarpSpeed');
+      const valWarpSpeed = document.getElementById('valWarpSpeed');
+      const sliderTrail = document.getElementById('sliderTrail');
+      const valTrail = document.getElementById('valTrail');
+
+      const presetButtons = document.querySelectorAll('.preset-btn');
+      const btnTogglePlay = document.getElementById('btnTogglePlay');
+      const playStatusBadge = document.getElementById('playStatusBadge');
+      const statusIcon = document.getElementById('statusIcon');
+      const trackTitle = document.getElementById('trackTitle');
+      const trackArtist = document.getElementById('trackArtist');
+      const btnFullscreen = document.getElementById('btnFullscreen');
+      const deckHeader = document.getElementById('deckHeader');
+      const deckToggleBtn = document.getElementById('deckToggleBtn');
+      const controlDeck = document.getElementById('controlDeck');
+
+      // Collapsible Deck
+      deckHeader.addEventListener('click', () => {
+        controlDeck.classList.toggle('collapsed');
+        deckToggleBtn.textContent = controlDeck.classList.contains('collapsed') ? '▲' : '▼';
+      });
+
+      // Presets
+      function setMode(mode) {
+        currentMode = mode;
+        presetButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        if (mode === 'idle') {
+          sliderEnergy.value = 0;
+          valEnergy.textContent = '0%';
+          trackTitle.textContent = 'STANDBY IDLE';
+          trackArtist.textContent = 'GENTLE COSMIC DRIFT';
+        } else if (mode === 'waltz') {
+          trackTitle.textContent = 'SOFT LUNAR WALTZ';
+          trackArtist.textContent = 'SERENE AMBIENT FLOW';
+        } else if (mode === 'pop') {
+          trackTitle.textContent = 'POP GROOVE BEAT';
+          trackArtist.textContent = 'DYNAMIC WARP SYNC';
+        } else if (mode === 'edm') {
+          trackTitle.textContent = 'CYBERPUNK BASS DROP';
+          trackArtist.textContent = 'MAXIMUM WARP VELOCITY';
+        }
+      }
+
+      presetButtons.forEach(btn => {
+        btn.addEventListener('click', () => setMode(btn.dataset.mode));
+      });
+
+      // Sliders
+      sliderEnergy.addEventListener('input', (e) => {
+        currentMode = 'manual';
+        presetButtons.forEach(btn => btn.classList.remove('active'));
+        valEnergy.textContent = `${e.target.value}%`;
+      });
+
+      sliderStarSize.addEventListener('input', (e) => {
+        const factor = parseFloat(e.target.value) / 10;
+        valStarSize.textContent = `${factor.toFixed(1)}X`;
+        starfield.stars.forEach(s => {
+          s.baseRadius = (1.2 + Math.random() * 1.5) * factor;
+        });
+      });
+
+      sliderStarCount.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        valStarCount.textContent = `${val} 顆`;
+        starfield.setStarCount(val);
+      });
+
+      sliderWarpSpeed.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        valWarpSpeed.textContent = val.toFixed(1);
+        starfield.warpMaxSpeed = val;
+      });
+
+      sliderTrail.addEventListener('input', (e) => {
+        const val = (parseFloat(e.target.value) / 10).toFixed(1);
+        valTrail.textContent = `${val}X`;
+        starfield.warpTrailFactor = parseFloat(val);
+      });
+
+      // Play/Pause
+      btnTogglePlay.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+          playStatusBadge.className = 'capsule-status-badge playing';
+          statusIcon.textContent = '▶';
+        } else {
+          playStatusBadge.className = 'capsule-status-badge paused';
+          statusIcon.textContent = '⏸';
+        }
+      });
+
+      // Fullscreen
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+
+      // 3-Line Lyrics Demo Rotation
+      const demoLyrics = [
+        ["🌌 星空背景稀疏點位 • 待機悠閒慢速漂移", "🚀 音樂震動重低音爆發 • 時空穿梭流線噴射", "🌊 音樂暫停或減弱 • 平滑慣性阻尼放慢"],
+        ["✨ 精緻白光核心與天青微芒 • 待機清晰可辨", "⚡ 中心徑向 3D 透視投影 • 曲速星軌拉伸", "💎 黑曜石液態玻璃膠囊 • 完美層級疊加"],
+        ["🎵 14 倍動態速差調速 • 重低音極速響應", "🌌 沉浸式宇宙深空視覺體驗", "🛸 支援 Lively Wallpaper 全域常駐"]
+      ];
+      let lyricIdx = 0;
+      const lyricsTrack = document.getElementById('lyricsTrack');
+      const btnToggleLyrics = document.getElementById('btnToggleLyrics');
+
+      function updateLyrics() {
+        lyricIdx = (lyricIdx + 1) % demoLyrics.length;
+        const set = demoLyrics[lyricIdx];
+        lyricsTrack.innerHTML = `
+          <div class="lyric-line is-prev">${set[0]}</div>
+          <div class="lyric-line is-active">${set[1]}</div>
+          <div class="lyric-line is-next">${set[2]}</div>
+        `;
+      }
+      btnToggleLyrics.addEventListener('click', updateLyrics);
+
+      // Main Loop
+      function animate(now) {
+        requestAnimationFrame(animate);
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+
+        let bass = 0.0;
+        let mid = 0.0;
+        let treble = 0.0;
+
+        if (isPlaying) {
+          if (currentMode === 'idle') {
+            bass = 0.0;
+            mid = 0.0;
+          } else if (currentMode === 'waltz') {
+            beatPhase += dt * 3.5; // ~60 BPM gentle pulse
+            const pulse = Math.max(0, Math.sin(beatPhase));
+            bass = Math.pow(pulse, 2.5) * 0.35;
+            mid = pulse * 0.25;
+            sliderEnergy.value = Math.round(bass * 100);
+            valEnergy.textContent = `${sliderEnergy.value}%`;
+          } else if (currentMode === 'pop') {
+            beatPhase += dt * 7.5; // ~120 BPM
+            const beatPulse = Math.max(0, Math.sin(beatPhase));
+            const subPulse = Math.max(0, Math.cos(beatPhase * 0.5));
+            bass = Math.pow(beatPulse, 4.0) * 0.75 + subPulse * 0.2;
+            mid = beatPulse * 0.4;
+            sliderEnergy.value = Math.round(bass * 100);
+            valEnergy.textContent = `${sliderEnergy.value}%`;
+          } else if (currentMode === 'edm') {
+            beatPhase += dt * 8.8; // ~140 BPM
+            const drop = Math.pow(Math.max(0, Math.sin(beatPhase)), 6.0);
+            const roll = Math.max(0, Math.sin(beatPhase * 2.0)) * 0.3;
+            bass = Math.min(1.0, drop * 0.9 + roll);
+            mid = Math.min(1.0, drop * 0.6 + roll * 0.5);
+            sliderEnergy.value = Math.round(bass * 100);
+            valEnergy.textContent = `${sliderEnergy.value}%`;
+          } else if (currentMode === 'manual') {
+            bass = parseFloat(sliderEnergy.value) / 100;
+            mid = bass * 0.7;
+          }
+        } else {
+          bass = 0.0;
+          mid = 0.0;
+        }
+
+        // Update Aura Beam
+        if (auraBeam) {
+          auraBeam.update(dt, bass, mid, isPlaying);
+        }
+
+        // Update Starfield Engine
+        if (starfield) {
+          starfield.updateAudio(bass, mid, treble, isPlaying);
+          starfield.render(dt);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
