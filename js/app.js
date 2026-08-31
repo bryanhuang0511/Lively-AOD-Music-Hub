@@ -24,12 +24,48 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentTrackArtist = '';
   let currentSongSignature = '';
 
+  const titleWrapper = document.getElementById('titleWrapper');
+  const artistWrapper = document.getElementById('artistWrapper');
+  const capsuleDivider = document.getElementById('capsuleDivider');
+
   // 🌟 20X 慢速單調時間積分器（保證永遠順時針、絕對不倒退、無任何頻閃逆轉）
   let borderAngle = 0.0;
   let currentBass = 0.0;
   let currentMid = 0.0;
+  let currentTreble = 0.0;
 
-  // 2. Clean Initial Standby Setup
+  // 🌟 膠囊標題自適應跑馬燈控制器 (計算真實未截斷文字寬度，平滑循環滾動露出所有文字)
+  function updateCapsuleTitle(titleText) {
+    if (!trackTitle) return;
+    trackTitle.textContent = titleText;
+    trackTitle.classList.remove('is-marquee');
+    trackTitle.style.removeProperty('--marquee-distance');
+    trackTitle.style.removeProperty('--marquee-duration');
+
+    if (!titleText) {
+      if (capsuleDivider) capsuleDivider.style.opacity = '0';
+      return;
+    }
+
+    if (capsuleDivider) capsuleDivider.style.opacity = '1';
+
+    requestAnimationFrame(() => {
+      const wrapperWidth = titleWrapper ? titleWrapper.clientWidth : 620;
+      const titleWidth = trackTitle.scrollWidth;
+      const overflow = titleWidth - wrapperWidth;
+
+      // 當文字寬度超出剪裁視窗 10px 以上，啟動平滑來回跑馬燈
+      if (overflow > 10) {
+        const overflowPx = overflow + 36;
+        const durationSec = Math.max(10, Math.min(24, Math.round(overflowPx / 35 + 8)));
+        trackTitle.style.setProperty('--marquee-distance', `-${overflowPx}px`);
+        trackTitle.style.setProperty('--marquee-duration', `${durationSec}s`);
+        trackTitle.classList.add('is-marquee');
+      }
+    });
+  }
+
+  // 2. Clean Initial Standby Setup (待機 0 文字純黑極致 AOD 規範)
   function initCleanStandby() {
     isPlaying = false;
     isPaused = false;
@@ -44,10 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
     currentMid = 0.0;
     currentTreble = 0.0;
 
-    if (trackTitle) trackTitle.textContent = 'STANDBY';
-    if (trackArtist) trackArtist.textContent = 'AOD MUSIC HUB';
-    if (statusIcon) statusIcon.textContent = '▶';
+    // 🌌 待機休眠：膠囊內部 100% 清空（0 任何文字、0 STANDBY、0 AOD MUSIC HUB）
+    updateCapsuleTitle('');
+    if (trackArtist) trackArtist.textContent = '';
+    if (capsuleDivider) capsuleDivider.style.opacity = '0';
+    if (statusIcon) statusIcon.textContent = '';
     if (playStatusBadge) playStatusBadge.className = 'capsule-status-badge';
+
     if (capsuleWrapper) {
       capsuleWrapper.style.setProperty('--rgb-blur', '10px');
       capsuleWrapper.style.setProperty('--rgb-opacity', '0.55');
@@ -55,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (starfieldEngine) {
       starfieldEngine.updateAudio(0, 0, 0, false);
+    }
+    if (lyricsEngine) {
+      lyricsEngine.resetStandbyDisplay();
     }
   }
 
@@ -71,25 +113,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initCleanStandby();
 
+  // 🛡️ v1.2.0 核心演算法：GSMTC 權威暫停鎖定 & 400ms 突波通知聲抗噪計時器
+  let isAuthoritativePaused = false;
+  let sustainedAudioDuration = 0;
+  let lastAudioTick = performance.now();
+
   // Expose global seek function for clicking lyric lines
   window.seekToTime = (targetTime) => {
     playbackTime = Math.max(0, Math.min(trackDuration, targetTime));
     lyricsEngine.updateTime(playbackTime);
   };
 
-  function setPlayingState() {
+  function setPlayingState(force = false) {
+    if (isAuthoritativePaused && !force) {
+      return;
+    }
     if (!isPlaying || isPaused) {
       isPlaying = true;
       isPaused = false;
+      isAuthoritativePaused = false;
       if (statusIcon) statusIcon.textContent = '▶';
       if (playStatusBadge) playStatusBadge.className = 'capsule-status-badge playing';
     }
   }
 
-  function setPausedState() {
+  function setPausedState(authoritative = false) {
+    if (authoritative) {
+      isAuthoritativePaused = true;
+    }
     if (isPlaying || !isPaused) {
       isPlaying = false;
       isPaused = true;
+      sustainedAudioDuration = 0;
       if (statusIcon) statusIcon.textContent = '⏸';
       if (playStatusBadge) playStatusBadge.className = 'capsule-status-badge paused';
       lyricsEngine.setPausedDisplay();
@@ -98,28 +153,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Audio & Track Callback Handlers
   const audioEngine = new AudioListenerEngine(
-    // onAudioUpdate (🌟 音樂節奏舞動響應：光暈半徑呼吸、亮度增強與低音瞬時加速)
+    // onAudioUpdate (🌟 音樂節奏舞動響應：400ms 持續性抗噪濾波 ✖ 重低音曲速加速)
     (bass, mid, treble, rawFft) => {
       try {
         const now = performance.now();
-        const currentEnergy = bass + mid + treble;
+        const dtAudio = Math.min(0.1, (now - lastAudioTick) / 1000);
+        lastAudioTick = now;
 
+        const currentEnergy = bass + mid + treble;
         currentBass = bass;
         currentMid = mid;
         currentTreble = treble;
 
-        if (currentEnergy > 0.003) {
-          lastAudioTime = now;
-          setPlayingState();
+        // 🛡️ 400ms 持續性音樂特徵濾波器 (Transient Notification Filter)
+        if (currentEnergy > 0.005) {
+          sustainedAudioDuration += dtAudio;
+        } else {
+          sustainedAudioDuration = Math.max(0, sustainedAudioDuration - dtAudio * 2.5);
+        }
 
-          // 🛡️ 偵測到新音源但無 GSMTC 歌曲資訊時：立即關閉舊歌資訊，轉為純音訊律動
+        const isLegitMusicStream = sustainedAudioDuration >= 0.38 || isPlaying;
+
+        if (currentEnergy > 0.003 && isLegitMusicStream) {
+          lastAudioTime = now;
+
+          // 🛡️ 偵測到新音源但無 GSMTC 歌曲資訊時：立即轉為純音訊律動
           if (!hasGSMTCTrack && currentSongSignature !== 'PURE_AUDIO_STREAM') {
             currentSongSignature = 'PURE_AUDIO_STREAM';
-            if (trackTitle) trackTitle.textContent = 'PURE AUDIO STREAM';
-            if (trackArtist) trackArtist.textContent = 'SYSTEM SOUND';
-            lyricsEngine.setAudioOnlyDisplay();
+            updateCapsuleTitle('PURE AUDIO STREAM');
+            if (trackArtist) trackArtist.textContent = 'SYSTEM AUDIO';
+            if (statusIcon) statusIcon.textContent = '▶';
+            lyricsEngine.setAudioOnlyDisplay('PURE AUDIO STREAM');
           }
 
+          setPlayingState(sustainedAudioDuration >= 0.5);
         }
 
         // 🌌 即時更新星空引擎能量
@@ -134,10 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
     (trackInfo) => {
       try {
         if (!trackInfo || (!trackInfo.title && !trackInfo.artist)) {
-          // 🛑 音源中斷或關閉：第一時間立刻關閉並清除原本播放的所有資訊
           hasGSMTCTrack = false;
           initCleanStandby();
-          lyricsEngine.resetStandbyDisplay();
           return;
         }
 
@@ -145,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const isNewSong = songSig !== currentSongSignature;
         const now = performance.now();
 
-        // 🛡️ 每次偵測到新音源或切歌訊號：第 0 毫秒立即重置時間軸並關閉舊歌狀態
         playbackTime = 0.0;
         lastAudioTime = now;
         trackTransitionUntil = now + 4000;
@@ -158,11 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
           // 🧹 瞬時 100% 關閉並銷毀上一首的所有歌詞 DOM 與網路請求
           lyricsEngine.purgePreviousSong();
 
-          // 即刻更新為新音源的標題與歌手（絕不殘留上一首）
-          if (trackTitle) trackTitle.textContent = currentTrackTitle;
+          updateCapsuleTitle(currentTrackTitle);
           if (trackArtist) trackArtist.textContent = currentTrackArtist;
 
-          // 請求新在線歌詞，傳入即時 playbackTime 取得器以在載入完成時毫秒級對齊（絕不錯過第 1 秒歌詞）
+          // 請求新在線歌詞，傳入即時 playbackTime 取得器以在載入完成時毫秒級對齊
           lyricsEngine.fetchOnlineLyrics(
             currentTrackTitle,
             currentTrackArtist,
@@ -179,7 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         hasGSMTCTrack = true;
-        setPlayingState();
+        isAuthoritativePaused = false;
+        setPlayingState(true);
       } catch (e) {
         console.warn('Track update handled safely:', e);
       }
@@ -187,9 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // onPlaybackChange (Lively 系統全域暫停/播放回調)
     (isLivelyPaused) => {
       if (isLivelyPaused) {
-        setPausedState();
+        setPausedState(true); // 🛡️ 鎖定權威暫停
       } else {
-        setPlayingState();
+        setPlayingState(true); // 🛡️ 權威播放
       }
     }
   );
@@ -200,9 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
     playStatusBadge.addEventListener('click', (e) => {
       e.stopPropagation();
       if (isPaused) {
-        setPlayingState();
+        setPlayingState(true);
       } else {
-        setPausedState();
+        setPausedState(true);
       }
     });
   }
@@ -210,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 🖥️ 視窗隱藏/全螢幕自動暫停監聽
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      setPausedState();
+      setPausedState(true);
     }
   });
 
@@ -231,16 +295,25 @@ document.addEventListener('DOMContentLoaded', () => {
       auraBeamEngine.update(dt, currentBass, currentMid, isPlaying && !isPaused);
     }
 
-    // 🛡️ Immunity check: If in the 4s transition period of cutting song, NEVER trigger fake pause!
+    // 🛡️ 靜音檢測與 30 秒分級休眠協議 (Tiered Silence & 30s Deep Sleep Protocol)
     const isTransitioning = now < trackTransitionUntil;
-    const silenceTimeout = 1600;
+    const pauseTimeout = 1600;      // 1.6 秒無聲 ➔ 進入一般暫停 (保留歌詞與歌名，膠囊顯示 ⏸)
+    const sleepTimeout = 30000;     // 30 秒無聲 ➔ 進入 100% 純黑待機休眠 (膠囊 0 文字、歌詞純黑清空)
 
-    if (isPlaying && !isTransitioning && (now - lastAudioTime > silenceTimeout) && !audioEngine.isLocalAudioPlaying) {
-      if (hasGSMTCTrack && currentTrackTitle) {
-        setPausedState();
-      } else if (!hasGSMTCTrack) {
+    const silenceDuration = now - lastAudioTime;
+
+    if (!audioEngine.isLocalAudioPlaying && !isTransitioning) {
+      if (isPlaying && silenceDuration > pauseTimeout) {
+        if (hasGSMTCTrack && currentTrackTitle) {
+          setPausedState();
+        } else if (!hasGSMTCTrack) {
+          initCleanStandby();
+        }
+      }
+
+      // 🌌 超過 30 秒完全無音訊 ➔ 智慧休眠：自動清空所有舊歌詞與膠囊文字，回歸 0 文字純黑 AOD
+      if (silenceDuration > sleepTimeout && (hasGSMTCTrack || currentTrackTitle)) {
         initCleanStandby();
-        lyricsEngine.resetStandbyDisplay();
       }
     }
 
@@ -267,9 +340,9 @@ document.addEventListener('DOMContentLoaded', () => {
         hasGSMTCTrack = true;
         currentTrackTitle = file.name.replace(/\.[^/.]+$/, '');
         currentTrackArtist = 'LOCAL AUDIO FILE';
-        if (trackTitle) trackTitle.textContent = currentTrackTitle;
+        updateCapsuleTitle(currentTrackTitle);
         if (trackArtist) trackArtist.textContent = currentTrackArtist;
-        setPlayingState();
+        setPlayingState(true);
         playbackTime = 0.0;
         trackTransitionUntil = performance.now() + 4000;
         audioEngine.initLocalAudio(file);

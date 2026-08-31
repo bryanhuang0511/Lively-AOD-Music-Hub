@@ -43,24 +43,22 @@ class LyricsEngine {
   resetStandbyDisplay() {
     this.cancelActiveRequests();
     this.sessionId++;
-    this.lyrics = [
-      { time: 0, text: '🌌 AOD MUSIC HUB • 星空時空穿梭版' },
-      { time: 5, text: '🎵 播放音樂時自動同步歌詞與動態律動' },
-      { time: 10, text: '✨ 支援 Windows 系統全域媒體與在線搜尋' }
-    ];
-    this.currentIndex = 1;
+    this.lyrics = [];
+    this.currentIndex = -1;
     this.currentTrackQuery = '';
     this.offset = 0.0;
     this.trackDuration = 210;
 
+    if (this.noLyricsTimer) {
+      clearTimeout(this.noLyricsTimer);
+      this.noLyricsTimer = null;
+    }
+
     if (this.track) {
-      this.track.innerHTML = `
-        <div class="lyric-line is-prev">🌌 AOD MUSIC HUB • 星空時空穿梭版</div>
-        <div class="lyric-line is-active">🎵 播放音樂時自動同步歌詞與動態律動</div>
-        <div class="lyric-line is-next">✨ 支援 Windows 系統全域媒體與在線搜尋</div>
-      `;
-      this.track.style.transition = 'none';
-      this.track.style.transform = 'translateY(110px)';
+      // 🌌 15 秒待機休眠：歌詞區域 100% 純黑消隱，保留極致深邃美感
+      this.track.innerHTML = '';
+      this.track.style.transition = 'opacity 0.6s ease';
+      this.track.style.opacity = '0';
     }
   }
 
@@ -69,39 +67,40 @@ class LyricsEngine {
   }
 
   setAudioOnlyDisplay(title = '') {
-    this.cancelActiveRequests();
-    this.sessionId++;
-    const displayTitle = title ? title : '純音訊即時律動';
-    this.lyrics = [
-      { time: 0, text: `🎵 ${displayTitle}` },
-      { time: 6, text: '🌌 隨重低音脈衝觸發時空穿梭曲速' },
-      { time: 12, text: '✨ 恆定弧長雷射光軌 ✖ 0% GPU 待機低負載' },
-      { time: 18, text: '🎧 享受深邃黑曜石液態玻璃音樂體驗' }
-    ];
-    this.currentIndex = 0;
-    this.currentTrackQuery = '';
-    this.offset = 0.0;
-    this.trackDuration = 240;
-
-    this.renderTrackDOM();
-    this.scrollToIndex(0, false);
+    this.setNoLyricsDisplay(title);
   }
 
   setNoLyricsDisplay(cleanTitle = '') {
+    this.cancelActiveRequests();
     this.sessionId++;
-    const songName = cleanTitle || '當前播放曲目';
-    this.lyrics = [
-      { time: 0, text: `🎵 ${songName}` },
-      { time: 6, text: '🌌 隨重低音脈衝觸發時空穿梭曲速' },
-      { time: 12, text: '✨ 恆定弧長雷射光軌 ✖ 0% GPU 待機低負載' },
-      { time: 18, text: '🎧 享受深邃黑曜石液態玻璃音樂體驗' },
-      { time: 24, text: '🛸 AOD Music Hub • 沉浸式視覺音訊' }
-    ];
-    this.currentIndex = 0;
-    this.trackDuration = 240;
+    this.lyrics = [];
+    this.currentIndex = -1;
 
-    this.renderTrackDOM();
-    this.scrollToIndex(0, false);
+    if (this.noLyricsTimer) {
+      clearTimeout(this.noLyricsTimer);
+      this.noLyricsTimer = null;
+    }
+
+    const songName = cleanTitle || '';
+    if (this.track) {
+      if (songName) {
+        // 🌟 僅顯示當前歌曲標題 5 秒，隨後 100% 純黑消隱（0 廣告、0 雜訊）
+        this.track.innerHTML = `<div class="lyric-line is-active" id="fallbackTitleLine">🎵 ${songName}</div>`;
+        this.track.style.transition = 'opacity 0.6s ease, transform 0.4s ease';
+        this.track.style.transform = 'translateY(110px)';
+
+        this.noLyricsTimer = setTimeout(() => {
+          if (this.track) {
+            const titleLine = document.getElementById('fallbackTitleLine');
+            if (titleLine) {
+              titleLine.className = 'lyric-line is-outro-faded';
+            }
+          }
+        }, 5000);
+      } else {
+        this.track.innerHTML = '';
+      }
+    }
   }
 
   /**
@@ -263,6 +262,30 @@ class LyricsEngine {
     }
   }
 
+  /**
+   * 🧹 智慧判斷是否為非歌唱元數據（作詞/作曲/編曲/製作人等名單雜訊）
+   */
+  isMetadataLine(text) {
+    if (!text) return true;
+    const clean = text.trim();
+    if (clean.length < 2) return true;
+    
+    // 過濾純符號或空標籤 (e.g. ---, ***, ...)
+    if (/^[\-_~*=·\s.]{2,}$/.test(clean)) return true;
+
+    // 正則匹配常見製作名單前綴
+    const metaRegex = /^(作詞|作词|作曲|編曲|编曲|製作|制作|監製|监制|混音|母帶|母带|錄音|录音|吉他|貝斯|贝斯|鼓手|鍵盤|键盘|和聲|和声|弦樂|弦乐|企劃|企划|統籌|统筹|發行|发行|出品|OP|SP|Prod|Produced|Written|Arranged|Mixed|Mastered|Lyrics|Music|Composer|Vocal|Singer|Artist|Album|歌手|專輯|专辑|歌名|曲名)[:：\s\/／、]/i;
+    if (metaRegex.test(clean)) return true;
+
+    const pureMetaRegex = /^(純音樂|纯音乐|請欣賞|请欣赏|Instrumental|Intro|Interlude|Outro|Music|Ending)$/i;
+    if (pureMetaRegex.test(clean)) return true;
+
+    const creditRegex = /^(Written by|Composed by|Arranged by|Produced by|Directed by|Mastered by|Mixed by|Lyrics by|Music by)/i;
+    if (creditRegex.test(clean)) return true;
+
+    return false;
+  }
+
   parsePlainLyrics(text, cacheKey = null, sessionId = null, currentPlaybackTime = 0.0) {
     if (sessionId !== null && this.sessionId !== sessionId) return;
     if (!text) return;
@@ -270,6 +293,8 @@ class LyricsEngine {
     const cleanList = [];
     let lastT = '';
     rawLines.forEach((l, idx) => {
+      // 🛡️ 過濾前 5 行中的非歌詞元數據
+      if (idx < 6 && this.isMetadataLine(l)) return;
       if (l !== lastT) {
         cleanList.push({ time: idx * 4.0, text: l });
         lastT = l;
@@ -299,6 +324,10 @@ class LyricsEngine {
         const content = line.replace(/\[\d{2}:\d{2}\.?\d*\]/g, '').trim();
 
         if (content && !content.startsWith('by:') && !content.startsWith('ar:') && !content.startsWith('ti:')) {
+          // 🛡️ 智慧過濾前 20 秒內的作詞/作曲/編曲等名單雜訊，避免前奏提前搶跑
+          if (totalSeconds < 22.0 && this.isMetadataLine(content)) {
+            continue;
+          }
           temp.push({ time: totalSeconds, text: content });
         }
       }
@@ -331,6 +360,10 @@ class LyricsEngine {
     this.currentIndex = -1;
     this.renderTrackDOM();
 
+    if (this.track) {
+      this.track.style.opacity = '1';
+    }
+
     // 🌟 核心修復：立即對齊當前真實已播放的時間戳，絕不錯過第 1 秒歌詞！
     if (currentPlaybackTime > 0.05) {
       this.updateTime(currentPlaybackTime);
@@ -357,7 +390,8 @@ class LyricsEngine {
       el.className = 'lyric-line';
       el.dataset.idx = idx;
       el.textContent = item.text;
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (window.seekToTime) window.seekToTime(item.time);
       });
       fragment.appendChild(el);
@@ -365,6 +399,8 @@ class LyricsEngine {
 
     this.track.innerHTML = '';
     this.track.appendChild(fragment);
+    this.track.style.opacity = '1';
+    this.track.style.transition = 'opacity 0.4s ease, transform 0.48s cubic-bezier(0.16, 1, 0.3, 1)';
   }
 
   /**
@@ -375,6 +411,7 @@ class LyricsEngine {
 
     const effectiveTime = Math.max(0, currentTime + this.offset);
     const lastItem = this.lyrics[this.lyrics.length - 1];
+    const firstItem = this.lyrics[0];
 
     // 🌌 結尾尾奏自動淡出為純黑 (消除殘影)：最後一句唱完 4.0s 後，所有歌詞全數淡出消隱
     if (lastItem && effectiveTime > lastItem.time + 4.0) {
@@ -385,6 +422,19 @@ class LyricsEngine {
             el.className = 'lyric-line is-outro-faded';
           });
         }
+      }
+      return;
+    }
+
+    // 🛡️ 核心修復：前奏時間軸鎖定保護 (Intro Anchor Lock)
+    // 當歌曲仍在前奏階段（尚未到達歌手開口唱的第一句時間戳），鎖定在第一句就緒聚焦點，絕不提早空跑滾動！
+    if (firstItem && effectiveTime < firstItem.time) {
+      if (this.currentIndex !== 0) {
+        this.currentIndex = 0;
+        this.scrollToIndex(0, true);
+      }
+      if (this.track && this.track.children[0]) {
+        this.track.children[0].style.setProperty('--wipe-progress', '0%');
       }
       return;
     }

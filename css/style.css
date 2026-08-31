@@ -112,12 +112,13 @@ body {
 /* 💎 1.2X Pure Liquid Obsidian Glass Capsule (純粹深邃透亮黑曜石液態玻璃) */
 .liquid-glass-capsule {
   position: relative;
-  z-index: 3;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 28px;
-  padding: 20px 46px; /* 1.2X scale */
+  gap: 22px;
+  min-height: 92px;
+  padding: 20px 42px; /* 1.2X scale */
   border-radius: 70px;
   background: rgba(3, 4, 7, 0.96);
   backdrop-filter: blur(28px) saturate(200%);
@@ -130,6 +131,7 @@ body {
   flex-shrink: 0;
   max-width: 100%;
   overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* 🌟 Dynamic Moving Specular Sheen (絲滑液態光澤折射掃掠) */
@@ -171,20 +173,66 @@ body {
   }
 }
 
-/* Song Title in Capsule (1.2X: 42px, 100% Rock-Solid, No Vibration) */
+/* Title Wrapper (True Clipping Window for Smooth Marquee) */
+.capsule-title-wrapper {
+  max-width: 620px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 1;
+}
+
+/* Song Title in Capsule (1.2X: 42px, 100% Rock-Solid with Smooth Auto-Marquee) */
 .capsule-title {
   font-family: var(--font-title);
   font-size: 42px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 2.2px;
   color: #ffffff;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 680px;
   text-shadow: 0 1px 12px rgba(255, 255, 255, 0.35);
   position: relative;
   z-index: 2;
+  display: inline-block;
+  vertical-align: middle;
+  padding: 0 4px;
+  will-change: transform, opacity;
+  transition: opacity 0.3s ease;
+}
+
+/* 🌟 嚴格由右向左（Right-to-Left）單向無限循環跑馬燈（絕不逆向回滾、無縫循環播放） */
+.capsule-title.is-marquee {
+  animation: titleMarquee var(--marquee-duration, 14s) ease-in-out infinite !important;
+}
+
+@keyframes titleMarquee {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  12% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  82% {
+    transform: translateX(var(--marquee-distance, -100px));
+    opacity: 1;
+  }
+  92% {
+    transform: translateX(var(--marquee-distance, -100px));
+    opacity: 0;
+  }
+  93% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 /* Glass Dot Divider */
@@ -193,6 +241,20 @@ body {
   font-size: 26px;
   position: relative;
   z-index: 2;
+  margin: 0 4px;
+  transition: opacity 0.3s ease;
+}
+
+/* Artist Wrapper */
+.capsule-artist-wrapper {
+  max-width: 420px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 1;
 }
 
 /* Artist Name in Capsule (1.2X: 29px, 100% Rock-Solid, No Vibration) */
@@ -204,11 +266,11 @@ body {
   color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 440px;
   position: relative;
   z-index: 2;
+  display: inline-block;
+  padding: 0 4px;
+  transition: opacity 0.3s ease;
 }
 
 /* 1.2X Pure Symbol Status Badge (No Chinese Words) */

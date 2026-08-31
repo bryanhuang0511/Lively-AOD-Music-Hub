@@ -29,14 +29,18 @@
         <!-- 🌟 Dynamic Moving Specular Glass Sheen Sweep -->
         <div class="liquid-specular-beam" id="specularBeam"></div>
 
-        <!-- Song Title -->
-        <span class="capsule-title" id="trackTitle">STANDBY</span>
+        <!-- Song Title with True Clipping Window -->
+        <div class="capsule-title-wrapper" id="titleWrapper">
+          <span class="capsule-title" id="trackTitle"></span>
+        </div>
         
         <!-- Subtle Glass Divider -->
-        <span class="capsule-divider">•</span>
+        <span class="capsule-divider" id="capsuleDivider">•</span>
 
-        <!-- Artist Name -->
-        <span class="capsule-artist" id="trackArtist">AOD MUSIC HUB</span>
+        <!-- Artist Name with True Clipping Window -->
+        <div class="capsule-artist-wrapper" id="artistWrapper">
+          <span class="capsule-artist" id="trackArtist"></span>
+        </div>
 
         <!-- Play/Pause Status Symbol Badge (Pure Symbol, No Chinese Text) -->
         <div class="capsule-status-badge" id="playStatusBadge" title="播放狀態">
@@ -47,11 +51,7 @@
 
     <!-- 🎵 4. Silky Continuous Conveyor Lyrics Viewport -->
     <section class="lyrics-viewport" id="lyricsViewport">
-      <div class="lyrics-track" id="lyricsTrack">
-        <div class="lyric-line is-prev">🌌 AOD MUSIC HUB • 星空時空穿梭版</div>
-        <div class="lyric-line is-active">🎵 播放音樂時自動同步歌詞與動態律動</div>
-        <div class="lyric-line is-next">✨ 支援 Windows 系統全域媒體與在線搜尋</div>
-      </div>
+      <div class="lyrics-track" id="lyricsTrack"></div>
     </section>
 
   </main>
