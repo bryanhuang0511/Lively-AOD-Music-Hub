@@ -1,6 +1,6 @@
-# 🎵 音樂AOD電腦桌布視覺播放器 (v1.0.0 基線版本檔案)
+# 🎵 音樂AOD電腦桌布視覺播放器 (v1.3.1 深模組與效能優化版)
 
-> **版本**：`v1.0.0 (Pristine Base Release)`  
+> **版本**：`v1.3.1 (Performance & Deep Modular Architecture)`  
 > **作者**：`原來如此>_<`  
 > **適用平台**：Windows 10 / 11 ✖ Lively Wallpaper ✖ WebView2  
 > **授權協議**：MIT License  
@@ -13,11 +13,13 @@
 
 ```mermaid
 graph TD
-  A["🎵 Windows 系統音訊 / GSMTC 播放器<br>(Spotify, Apple Music, YouTube, 瀏覽器等)"] --> B["🎧 audio_listener.js<br>(Lively WASAPI 頻譜 ✖ GSMTC 歌曲資訊)"]
-  B --> C["🚀 app.js 狀態主調度器<br>(Delta Time 物理時間積分 ✖ 智慧狀態機)"]
-  C --> D["🌌 aura_beam.js (AuraBeamEngine)<br>• 周長真實弧長積分 (恆定 500px 長度)<br>• Rainmeter 30ms/330ms DSP 調速 (14.1倍速階)<br>• 單一路徑平滑光弧 (0 圈點、0 階梯)"]
-  C --> E["🎤 lyrics_engine.js (LyricsEngine)<br>• 0ms 根節點極速銷毀舊歌<br>• 首句毫秒級時間戳咬合 (不漏第 1 秒)<br>• 尾奏 4s 自動淡出至 100% 純黑無殘影"]
-  C --> F["💎 index.html & style.css<br>• 1.2X 居中黑曜石純黑液態玻璃<br>• 3行光學景深虛化歌詞<br>• 2K 144Hz 硬體加速分層"]
+  A["🎵 Windows 系統音訊 / GSMTC 播放器<br/>(Spotify, Apple Music, YouTube, 瀏覽器等)"] --> B["🎧 audio_listener.js (AudioPort 接縫)<br/>• LivelyWasapiAdapter (WASAPI 迴路)<br/>• WebAudioFileAdapter (本地拖曳音訊)"]
+  B --> PS["🌌 playback_session.js (PlaybackSession 深模組)<br/>• 單調時鐘積分 & 400ms 抗噪濾波<br/>• 1.6s 暫停 / 30s 純黑待機休眠<br/>• 4s 切歌保護盾 & GSMTC 權威鎖定"]
+  PS --> C["🚀 app.js (極簡視圖調度器)<br/>• 膠囊自適應跑馬燈 & 點擊事件<br/>• 統一 requestAnimationFrame 幀調度"]
+  PS --> D["🌌 aura_beam.js (AuraBeamEngine)<br/>• 周長真實弧長積分 (恆定 500px 長度)<br/>• Rainmeter 30ms/330ms DSP 調速 (14.1倍速階)<br/>• 單一路徑平滑光弧 (0 圈點、0 階梯)"]
+  PS --> E["🎤 lyrics_engine.js (LyricsEngine 深模組)<br/>• 內部純 LrcParser 解析接縫 (0 DOM 依賴)<br/>• LrcCache 透明快取接縫<br/>• 首句毫秒級時間戳咬合 & 尾奏 4s 自動消隱"]
+  PS --> S["✨ starfield_engine.js (StarfieldEngine)<br/>• 待機 3D 溫柔漂移 & 重低音曲速穿梭"]
+  C --> F["💎 index.html & style.css<br/>• 1.2X 居中黑曜石純黑液態玻璃<br/>• 3行光學景深虛化歌詞<br/>• 2K 144Hz 硬體加速分層"]
 ```
 
 ---
@@ -41,6 +43,7 @@ graph TD
 
 ```
 Lively_AOD_Music_Hub/
+├── CONTEXT.md                              # 領域模型名詞字典 (Playback Session, Track, Aura Beam, etc.)
 ├── LivelyInfo.json                         # Lively Wallpaper 詮釋資料 (標題、預覽圖、作者、啟動參數)
 ├── index.html                              # 主介面結構 (純黑背景、1.2X 膠囊、畫布、歌詞軌道)
 ├── README.md                               # 專案快速入門與特性簡介
@@ -52,12 +55,12 @@ Lively_AOD_Music_Hub/
 ├── css/
 │   └── style.css                           # 完整樣式表 (黑曜石晶體、光學景深歌詞、硬體加速分層)
 └── js/
-    ├── app.js                              # 主程式入口 (Delta Time 積分、生命週期與狀態機調度)
+    ├── app.js                              # 極簡視圖調度器 (膠囊跑馬燈、事件綁定與動畫迴圈)
+    ├── playback_session.js                 # 【深模組】狀態機、時鐘積分、400ms抗噪與30s待機休眠
+    ├── lyrics_engine.js                    # 【深模組】LyricsEngine 3行景深歌詞、內部純 LrcParser/LrcCache
+    ├── audio_listener.js                   # 【接縫】AudioPort 接縫與 Lively WASAPI / WebAudio 雙配接器
     ├── aura_beam.js                        # 【核心】AuraBeamEngine 周長等弧長光軌 ✖ Rainmeter DSP 調速
-    ├── lyrics_engine.js                    # 【核心】LyricsEngine 3行景深歌詞、0ms清空、首句即時對齊與尾奏消隱
-    ├── audio_listener.js                   # Lively WASAPI 音訊頻譜與 GSMTC 曲目事件監聽器
-    ├── background_fx.js                    # 深色高斯氛圍底層著色器 (BackgroundShaderEngine)
-    └── color_thief.js                      # 封面智慧色系提取演算法 (可擴充模組)
+    └── starfield_engine.js                 # 【核心】StarfieldEngine 動態星空背景 (待機漂移 / 重低音曲速穿梭)
 ```
 
 ---

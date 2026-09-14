@@ -51,6 +51,12 @@ class StarfieldEngine {
     this.centerY = this.height / 2;
   }
 
+  clear() {
+    if (!this.canvas || !this.ctx) return;
+    this.ctx.fillStyle = '#000000';
+    this.ctx.fillRect(0, 0, this.width, this.height);
+  }
+
   initStars() {
     this.stars = [];
     for (let i = 0; i < this.starCount; i++) {
@@ -220,8 +226,9 @@ class StarfieldEngine {
 
       } else {
         // 🪐 Idle Mode: Draw Crisp, Clearly Visible Stars with Soft Aura Glow
+        // (Clean vector rendering without the CPU-expensive shadowBlur convolution)
         
-        // 1. Soft Nebula Halo Glow (讓星星在黑底上呈現立體層次)
+        // 1. Soft Nebula Halo Glow
         const glowRadius = currentRadius * 2.8;
         const glowGrad = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
         glowGrad.addColorStop(0, `hsla(${star.colorHue}, 90%, 80%, ${alpha * 0.55})`);
@@ -237,10 +244,7 @@ class StarfieldEngine {
         ctx.beginPath();
         ctx.arc(px, py, currentRadius, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${star.colorHue}, 60%, 96%, ${alpha})`;
-        ctx.shadowColor = `hsla(${star.colorHue}, 100%, 75%, 0.8)`;
-        ctx.shadowBlur = 4;
         ctx.fill();
-        ctx.shadowBlur = 0; // 重置陰影
 
         // 3. Subtle Cross Sparkle for prominent bright stars (精緻十字微光)
         if (star.hasSparkle && depthRatio > 0.45 && alpha > 0.65) {

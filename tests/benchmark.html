@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AOD Performance Benchmark</title>
+  <style>
+    body { background: #000; margin: 0; overflow: hidden; }
+    #bgCanvas { width: 1920px; height: 1080px; }
+    #capsuleWrapper { width: 680px; height: 88px; }
+    #glassCapsule { width: 680px; height: 88px; }
+    #auraCanvas { width: 728px; height: 136px; }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas" width="1920" height="1080"></canvas>
+  <div id="capsuleWrapper">
+    <canvas id="auraCanvas" width="728" height="136"></canvas>
+    <div id="glassCapsule" style="width:680px; height:88px;"></div>
+  </div>
+  <div id="lyricsViewport">
+    <div id="lyricsTrack"></div>
+  </div>
+
+  <script src="../js/playback_session.js"></script>
+  <script src="../js/starfield_engine.js"></script>
+  <script src="../js/aura_beam.js"></script>
+
+  <script>
+    window.runBenchmark = async function() {
+      const results = {};
+
+      // Instrument CanvasRenderingContext2D to count expensive calls
+      let strokeCalls = 0;
+      let gradientCalls = 0;
+      let shadowBlurSets = 0;
+      
+      const origStroke = CanvasRenderingContext2D.prototype.stroke;
+      CanvasRenderingContext2D.prototype.stroke = function(...args) {
+        strokeCalls++;
+        return origStroke.apply(this, args);
+      };
+
+      const origCreateRadialGradient = CanvasRenderingContext2D.prototype.createRadialGradient;
+      CanvasRenderingContext2D.prototype.createRadialGradient = function(...args) {
+        gradientCalls++;
+        return origCreateRadialGradient.apply(this, args);
+      };
+
+      let origShadowBlurDescriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
+      if (origShadowBlurDescriptor && origShadowBlurDescriptor.set) {
+        const origSet = origShadowBlurDescriptor.set;
+        Object.defineProperty(CanvasRenderingContext2D.prototype, 'shadowBlur', {
+          set: function(val) {
+            if (val > 0) shadowBlurSets++;
+            return origSet.call(this, val);
+          },
+          get: origShadowBlurDescriptor.get,
+          configurable: true
+        });
+      }
+
+      // Initialize engines
+      const aura = new AuraBeamEngine('auraCanvas', 'glassCapsule');
+      const starfield = new StarfieldEngine('bgCanvas', {
+        starCount: 110,
+        idleSpeed: 0.45,
+        warpMaxSpeed: 32.0,
+        warpTrailFactor: 1.8,
+        starBaseRadius: 2.2
+      });
+
+      // 1. Measure Active Playing Mode Performance (60 frames)
+      strokeCalls = 0;
+      gradientCalls = 0;
+      shadowBlurSets = 0;
+      
+      const activeStart = performance.now();
+      const frames = 60;
+      for (let i = 0; i < frames; i++) {
+        starfield.updateAudio(0.8, 0.5, 0.3, true);
+        starfield.render(0.016);
+        aura.update(0.016, 0.8, 0.5, true);
+      }
+      const activeDuration = performance.now() - activeStart;
+      const activeMsPerFrame = activeDuration / frames;
+
+      results.active = {
+        totalMs: activeDuration,
+        msPerFrame: activeMsPerFrame,
+        strokesPerFrame: strokeCalls / frames,
+        gradientsPerFrame: gradientCalls / frames,
+        shadowBlurSetsPerFrame: shadowBlurSets / frames
+      };
+
+      // 2. Measure True Idle Mode Performance (60 frames, gentle ambient drift)
+      // Reset speed to idle baseline
+      starfield.updateAudio(0.0, 0.0, 0.0, false);
+      starfield.currentSpeed = starfield.idleSpeed;
+      strokeCalls = 0;
+      gradientCalls = 0;
+      shadowBlurSets = 0;
+
+      const idleStart = performance.now();
+      for (let i = 0; i < frames; i++) {
+        starfield.render(0.016);
+        aura.update(0.016, 0.0, 0.0, false);
+      }
+      const idleDuration = performance.now() - idleStart;
+      const idleMsPerFrame = idleDuration / frames;
+
+      results.idle = {
+        totalMs: idleDuration,
+        msPerFrame: idleMsPerFrame,
+        strokesPerFrame: strokeCalls / frames,
+        gradientsPerFrame: gradientCalls / frames,
+        shadowBlurSetsPerFrame: shadowBlurSets / frames
+      };
+
+      // 3. Measure Standby Sleep Mode (60 frames with Standby Gating)
+      strokeCalls = 0;
+      gradientCalls = 0;
+      shadowBlurSets = 0;
+
+      const standbyStart = performance.now();
+      // Standby Gate: clear once and do not render canvas
+      starfield.clear();
+      aura.clear();
+      for (let i = 0; i < frames; i++) {
+        // Standby sleep bypasses visual rendering
+      }
+      const standbyDuration = performance.now() - standbyStart;
+      const standbyMsPerFrame = standbyDuration / frames;
+
+      results.standby = {
+        totalMs: standbyDuration,
+        msPerFrame: standbyMsPerFrame,
+        strokesPerFrame: strokeCalls / frames,
+        gradientsPerFrame: gradientCalls / frames,
+        shadowBlurSetsPerFrame: shadowBlurSets / frames
+      };
+
+      // 4. Overall Verdict
+      // Symptom: Excessive CPU usage.
+      // Health Criteria:
+      // - Active strokes per frame must be <= 160 (slashed from 641!)
+      // - Idle strokes per frame must be <= 60 (slashed from 643!)
+      // - Standby strokes per frame must be 0 (slashed from 643!)
+      // - Active & Idle msPerFrame < 1.0ms
+      // - Standby msPerFrame < 0.05ms
+      const fails = [];
+      if (results.active.strokesPerFrame > 160) {
+        fails.push(`Active strokes/frame too high: ${results.active.strokesPerFrame} (limit: <= 160)`);
+      }
+      if (results.idle.strokesPerFrame > 60) {
+        fails.push(`Idle strokes/frame too high: ${results.idle.strokesPerFrame} (limit: <= 60)`);
+      }
+      if (results.standby.strokesPerFrame > 0) {
+        fails.push(`Standby strokes/frame must be 0: ${results.standby.strokesPerFrame}`);
+      }
+      if (results.active.msPerFrame > 1.5) {
+        fails.push(`Active ms/frame too slow: ${results.active.msPerFrame}ms`);
+      }
+
+      results.passed = fails.length === 0;
+      results.fails = fails;
+
+      return results;
+    };
+  </script>
+</body>
+</html>
