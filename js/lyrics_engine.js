@@ -613,6 +613,8 @@ class LyricsEngine {
     this.noLyricsTimer = null;
     this.offset = 0.0;
     this.trackDuration = 210;
+    this.lastSyncTime = 0.0;
+    this.lastWipeStep = -1;
 
     this.bindViewportOffsetWheel();
     this.reset();
@@ -691,6 +693,9 @@ class LyricsEngine {
   }
 
   sync(currentTime, isPaused = false) {
+    if (typeof currentTime === 'number' && Number.isFinite(currentTime)) {
+      this.lastSyncTime = currentTime;
+    }
     if (!this.lyrics || this.lyrics.length === 0) return;
 
     const effectiveTime = Math.max(0, currentTime + this.offset);
@@ -1004,7 +1009,11 @@ class LyricsEngine {
     }
 
     this.renderDOM();
-    this.scrollToIndex(0, false);
+    if (this.lastSyncTime > 0.05) {
+      this.sync(this.lastSyncTime, false);
+    } else {
+      this.scrollToIndex(0, false);
+    }
   }
 
   setFallbackTitleDisplay(songName) {
@@ -1074,8 +1083,6 @@ class LyricsEngine {
         wantClass = 'lyric-line is-prev';
       } else if (i === index + 1) {
         wantClass = 'lyric-line is-next';
-      } else if (i === index - 2 || i === index + 2) {
-        wantClass = 'lyric-line is-near';
       }
       if (el.className !== wantClass) {
         el.className = wantClass;

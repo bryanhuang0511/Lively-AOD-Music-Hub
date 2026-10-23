@@ -141,10 +141,12 @@
     } catch (e) {}
   }
 
+  let lastTrackTitle = '';
+
   function triggerSeekBurst(media) {
     pushZeroWidthSync(media, true);
-    setTimeout(() => pushZeroWidthSync(media, true), 140);
-    setTimeout(() => pushZeroWidthSync(media, true), 380);
+    setTimeout(() => pushZeroWidthSync(media, true), 120);
+    setTimeout(() => pushZeroWidthSync(media, true), 320);
   }
 
   function attachMediaListeners() {
@@ -153,7 +155,13 @@
       boundMedia = media;
 
       ['seeking', 'seeked', 'play', 'pause', 'ratechange', 'loadeddata'].forEach(evt => {
-        media.addEventListener(evt, () => triggerSeekBurst(media), { passive: true });
+        media.addEventListener(evt, () => {
+          if (evt === 'loadeddata' || evt === 'play') {
+            media._aod_calib1 = false;
+            media._aod_calib2 = false;
+          }
+          triggerSeekBurst(media);
+        }, { passive: true });
       });
 
       media.addEventListener('timeupdate', () => {
@@ -165,11 +173,33 @@
         lastExpectedTime = media.currentTime;
         lastCheckWallTime = now;
 
-        // Instant burst if time jumped by > 0.65s (seekbar click/drag) or every 4.5s heartbeat
+        // 1. Instant Seek / Fast-Forward / Rewind detection
         if (jump > 0.65) {
           triggerSeekBurst(media);
-        } else if ((now - lastTunnelUpdateWallTime) > 4500) {
-          pushZeroWidthSync(media, false);
+          return;
+        }
+
+        // 2. Early-Song Calibration (for songs with 1st-second lyrics)
+        // Automatically pulses at ~1.2s and ~3.2s so once lyrics finish fetching,
+        // playbackTime snaps to the exact millisecond of the audio track.
+        const cTime = media.currentTime;
+        if (cTime > 0.1 && cTime < 4.5) {
+          if (!media._aod_calib1 && cTime >= 1.2) {
+            media._aod_calib1 = true;
+            pushZeroWidthSync(media, true);
+          } else if (!media._aod_calib2 && cTime >= 3.2) {
+            media._aod_calib2 = true;
+            pushZeroWidthSync(media, true);
+          }
+        } else if (cTime >= 4.5 && (media._aod_calib1 || media._aod_calib2)) {
+          media._aod_calib1 = false;
+          media._aod_calib2 = false;
+        }
+
+        // 3. Track Title Change detection (YouTube Music SPA next song)
+        if (cleanMeta.title && cleanMeta.title !== lastTrackTitle) {
+          lastTrackTitle = cleanMeta.title;
+          triggerSeekBurst(media);
         }
       }, { passive: true });
     }

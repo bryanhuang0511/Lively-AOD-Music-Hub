@@ -354,43 +354,31 @@ body {
   line-height: 1.32;
   cursor: pointer;
   
-  /* 🚀 2K 144Hz Viewport-Culled GPU Compositing (Offscreen lines sleep with 0 blur cost) */
+  /* 🚀 2K 144Hz Dedicated GPU Hardware Compositing Layer */
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
+  will-change: transform, opacity, filter;
   
   /* 0.8X Base Font Size (22px ~ 35px) */
   font-size: clamp(22px, 2.5vw, 35px);
   font-weight: 700;
   letter-spacing: 0.8px;
   
-  /* Default: Culled outside viewport (Zero blur convolution on 80 off-screen lines) */
-  opacity: 0;
-  visibility: hidden;
-  filter: none;
-  will-change: auto;
-  pointer-events: none;
+  /* Default: Far-distance faded & blurred */
+  opacity: 0.08;
+  filter: blur(6px);
   transform: translateZ(0) scale(0.75);
   transform-origin: center center;
   color: rgba(255, 255, 255, 0.3);
   transition: opacity 0.45s ease, filter 0.45s ease, transform 0.45s ease, color 0.45s ease;
 }
 
-/* 遠景緩衝句 (index ± 2: 柔和遠景虛化過渡) */
-.lyric-line.is-near {
-  opacity: 0.08;
-  visibility: visible;
-  filter: blur(6px);
-  will-change: transform, opacity, filter;
-  transform: translateZ(0) scale(0.75);
-}
-
 /* 上一句 (Prev Line: 柔和中度景深虛化、零晃動、零閃爍) */
 .lyric-line.is-prev {
   opacity: 0.38;
-  visibility: visible;
-  pointer-events: auto;
   filter: blur(3.0px);
-  will-change: transform, opacity, filter;
   transform: translateZ(0) scale(0.85);
   color: rgba(255, 255, 255, 0.45);
 }
@@ -398,10 +386,7 @@ body {
 /* 當前句 (Active Line: 居中 1.15X 聚焦放大、清晰高光、零抖動) */
 .lyric-line.is-active {
   opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
   filter: blur(0px);
-  will-change: transform, opacity;
   transform: translateZ(0) scale(1.15);
   color: #ffffff;
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
@@ -410,10 +395,7 @@ body {
 /* 下一句 (Next Line: 柔和中度景深虛化、零晃動、零閃爍) */
 .lyric-line.is-next {
   opacity: 0.38;
-  visibility: visible;
-  pointer-events: auto;
   filter: blur(3.0px);
-  will-change: transform, opacity, filter;
   transform: translateZ(0) scale(0.85);
   color: rgba(255, 255, 255, 0.45);
 }

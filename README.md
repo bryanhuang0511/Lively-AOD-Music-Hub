@@ -17,11 +17,11 @@
 
 ## 🌟 核心特性 (Key Features - v1.5.0)
 
-1. **⚡ v1.5.0 極致 CPU/GPU 降載架構（單幀耗時驟降 83.8%，0 漸層配置）**：
+1. **⚡ v1.5.0 極致 CPU/GPU 降載架構（單幀耗時大幅下降，0 漸層配置）**：
    - **播放 144Hz / 待機 60Hz 智慧變頻 (`Adaptive Frame Pacing`)**：音樂播放與曲速穿梭時全速釋放 144Hz 原生極致絲滑；暫停與待機時自動平滑切換至 60Hz，直接省下 58% 待機幀數。
-   - **離屏星芒快取圖集 (`Offscreen Star Sprite Atlas`)**：啟動時預先烘焙 8 色階星雲光暈快取，將每幀 110 次 `createRadialGradient` 動態漸層運算降為 **0 次**（純硬體加速 `drawImage`）。
+   - **100% 純白向量星芒批次繪製 (`Pure-White Batched Vector Engine`)**：徹底剔除藍色色偏與模糊點陣貼圖，待機與曲速全面採用 100% 純白向量路徑批次繪製（全畫面僅 3 次繪圖呼叫），零漸層物件建立，零垃圾回收抖動。
    - **預烘焙光譜色彩池 (`Pre-Baked Chroma Styles`)**：`AuraBeamEngine` 啟動時一次性完成 180 階色彩插值與字串建構，消除每幀 45 次 `createLinearGradient` 與 180 次座標物件分配。
-   - **視窗外歌詞高斯模糊休眠 (`Viewport Culling`)**：僅對當前句前後 `±2` 行啟用光學景深模糊，其餘 75+ 行畫面外歌詞自動休眠（`visibility: hidden; filter: none`），杜絕整首歌 80 層模糊圖層同時合成。
+   - **穩定流暢景深圖層**：維持 3 行光學景深歌詞零晃動，並移除 96% 純黑膠囊底層看不見的 `backdrop-filter: blur(28px)`，大幅減輕 GPU/CPU 合成負載。
 2. **🇹🇼 內建 OpenCC 臺灣正體秒翻引擎 (`S2TConverter`)**：
    - 內建 2,705 字教育部標準正體字表與歌詞語境詞庫（自動精準轉換 `頭髮/發現`、`後來/天后`、`夜裡/千里`、`吹乾`、`一隻`、`捨不得` 等），無論抓到 QQ 音樂或網易雲簡體歌詞皆在 `< 0.05ms` 內自動轉為臺灣正體中文。
 3. **🎤 LyricsPlus 逐字同步引擎 ✖ LRCLIB 智慧候選評分 (LyricsEngine v1.5)**：
@@ -29,8 +29,9 @@
    - **智慧歌名拆解與頻道降噪 (`cleanTrackInfo`)**：自動剔除 YouTube `- Topic`、`Official MV`、`[MV]` 等雜訊，並從組合標題（如 `"BABYMONSTER - 'DESERVE' M/V"`、`"歌手 【歌名】"`）中精準分離純淨歌名與演出者。
    - **多維度候選評分 (`pickBestLrcLibHit`)**：依據曲長吻合度（誤差 $\le 2.5\text{s}$ 優先加權）、歌名/歌手精準度進行智慧排序，自動排除 `Remix`、`Live`、`Instrumental` 或殘缺歌詞。
    - **支援 `[offset:+/-ms]` 與 `<mm:ss.xx>` 增強型標籤**，並支援在歌詞區直接以**滑鼠滾輪上下微調時間差（`±0.25s`，中鍵歸零）**。
-4. **⏩ 零寬字元 GSMTC 快轉隱寫隧道 (Zero-Width Steganography Fast-Forward Sync)**：
-   - **突破 Chromium 與 Lively Wallpaper 原生無法偵測快轉/拉進度條之限制**：內建 [`tools/browser_sync_extension`](tools/browser_sync_extension) 輕量級瀏覽器擴充功能，利用不可見零寬字元（`\u200B`/`\u200C`）將 `<video>` 即時毫秒進度隱寫入 `navigator.mediaSession.metadata.artist`，無須開啟任何背景伺服器即可讓 YouTube Music / YouTube 快轉瞬間對齊。
+4. **⏩ 零寬字元 GSMTC 快轉隱寫隧道 ✖ 開頭首秒自校正 (Zero-Width Fast-Forward & Early Auto-Calibration)**：
+   - **突破 Chromium 與 Lively Wallpaper 原生無法偵測快轉/拉進度條之限制**：內建 [`tools/browser_sync_extension`](tools/browser_sync_extension) 輕量級瀏覽器擴充功能，利用不可見零寬字元（`\u200B`/`\u200C`）將 `<video>` 即時毫秒進度隱寫入 `navigator.mediaSession.metadata.artist`，快轉或拉動進度條時瞬間同步。
+   - **歌曲開頭自動校準（解決首秒開唱對位問題）**：新曲開頭自動於 1.2s 與 3.2s 發送微秒校準脈衝，確保網路歌詞下載完成瞬間立即對齊至目前正確秒數；順暢播放期完全零背景額外請求，徹底杜絕 CPU 浪費。
    - **抒情留白時間補償 (`PlaybackSession`)**：修正 GSMTC 中途刷新歸零問題，並針對歌曲間奏/氣音留白（$< 5\text{s}$）自動補償流逝秒數，確保全曲零落後。
 5. **🌌 動態星空粒子 ✖ 重低音曲速穿梭 (StarfieldEngine)**：
    - 待機常態下以柔和慢速飄逸與微芒閃爍，徹底剔除高開銷 `shadowBlur` 濾鏡。
