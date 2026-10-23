@@ -1,5 +1,5 @@
 /**
- * 🌌 Starfield Warp Engine (v1.1.0 Preview)
+ * 🌌 Starfield Warp Engine (v1.5.0 Pure-White Optical Edition)
  * - Idle Mode: Sparse, gentle, organic 3D/2D ambient drift with subtle twinkling.
  * - Warp Mode: Dynamic radial warp streams shooting from center origin with audio reactive streak length & speed.
  * - Smooth Inertial Damping: Decelerates naturally when music eases or pauses.
@@ -149,10 +149,7 @@ class StarfieldEngine {
     this.idleAngle += dt * 0.12;
     const isHighSpeed = this.currentSpeed > 1.8;
 
-    ctx.lineCap = 'round';
-
-    // 3. Update Positions & Pre-compute 3D Perspective Projection
-    const renderList = [];
+    // 3. Render Stars
     for (let i = 0; i < this.stars.length; i++) {
       const star = this.stars[i];
       star.twinklePhase += star.twinkleSpeed;
@@ -181,6 +178,11 @@ class StarfieldEngine {
       const px = star.x * k + cx;
       const py = star.y * k + cy;
 
+      // Previous position projection (for warp streak)
+      const pk = fov / Math.max(10, star.prevZ + (this.currentSpeed * this.warpTrailFactor));
+      const prevX = star.x * pk + cx;
+      const prevY = star.y * pk + cy;
+
       // Out-of-bounds check
       if (px < -60 || px > w + 60 || py < -60 || py > h + 60) {
         star.z = this.maxDepth;
@@ -189,102 +191,71 @@ class StarfieldEngine {
       }
 
       // Depth fade & dynamic brightness
-      const depthRatio = Math.max(0, Math.min(1.0, 1.0 - (star.z / this.maxDepth)));
-      const baseAlpha = 0.45 + depthRatio * 0.55;
+      const depthRatio = Math.max(0, Math.min(1.0, 1.0 - (star.z / this.maxDepth))); // 0 (far) to 1 (near)
+      const baseAlpha = 0.45 + depthRatio * 0.55; // 待機時保持 0.45 ~ 1.0 的清晰亮度
       const twinkle = Math.sin(star.twinklePhase) * 0.22;
       const alpha = Math.min(1.0, Math.max(0.25, baseAlpha + twinkle));
+      
+      // 🌟 待機星星尺寸：遠處約 1.4px，近處約 3.2px (明顯清晰、精緻不粗糙)
       const currentRadius = Math.max(1.2, star.baseRadius * (0.65 + depthRatio * 0.65));
 
       if (isHighSpeed) {
-        const pk = fov / Math.max(10, star.prevZ + (this.currentSpeed * this.warpTrailFactor));
-        const prevX = star.x * pk + cx;
-        const prevY = star.y * pk + cy;
-        renderList.push({ px, py, prevX, prevY, alpha, currentRadius });
+        // 🚀 Warp Mode: Draw 100% Pure-White Shooting Light Beam / Streak Lines
+        const streakDist = Math.hypot(px - prevX, py - prevY);
+        if (streakDist > 1.0) {
+          const grad = ctx.createLinearGradient(prevX, prevY, px, py);
+          grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+          grad.addColorStop(0.55, `rgba(255, 255, 255, ${(alpha * 0.50).toFixed(3)})`);
+          grad.addColorStop(1, `rgba(255, 255, 255, ${Math.min(1, alpha * 1.2).toFixed(3)})`);
+
+          ctx.beginPath();
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(px, py);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = Math.min(3.2, currentRadius * 1.2);
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        }
+
+        // Draw bright leading star head
+        ctx.beginPath();
+        ctx.arc(px, py, Math.min(2.8, currentRadius * 0.95), 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
       } else {
-        renderList.push({ px, py, alpha, currentRadius, depthRatio, hasSparkle: star.hasSparkle });
-      }
-    }
+        // 🪐 Idle Mode: Draw Crisp, 100% Pure-White Stars with Soft Aura Glow
+        // 1. Soft Pure-White Nebula Halo Glow
+        const glowRadius = currentRadius * 2.8;
+        const glowGrad = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
+        glowGrad.addColorStop(0, `rgba(255, 255, 255, ${(alpha * 0.45).toFixed(3)})`);
+        glowGrad.addColorStop(0.5, `rgba(255, 255, 255, ${(alpha * 0.15).toFixed(3)})`);
+        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-    // 4. Batched Pure-White Vector Rendering (100% Pure White, 0 Gradients, 3 Draw Calls Total!)
-    if (isHighSpeed) {
-      // Pass 1: Faint Pure-White Comet Trails
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.32)';
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      for (let i = 0; i < renderList.length; i++) {
-        const s = renderList[i];
-        const dx = s.px - s.prevX;
-        const dy = s.py - s.prevY;
-        if (dx * dx + dy * dy > 1.0) {
-          ctx.moveTo(s.prevX, s.prevY);
-          ctx.lineTo(s.px, s.py);
+        ctx.beginPath();
+        ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
+        ctx.fillStyle = glowGrad;
+        ctx.fill();
+
+        // 2. Pure-White Radiant Core (100% 純粹白曜核心)
+        ctx.beginPath();
+        ctx.arc(px, py, currentRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(3)})`;
+        ctx.fill();
+
+        // 3. Subtle Cross Sparkle for prominent bright stars (精緻十字微芒星芒)
+        if (star.hasSparkle && depthRatio > 0.45 && alpha > 0.65) {
+          const sparkleLen = currentRadius * 2.2;
+          ctx.strokeStyle = `rgba(255, 255, 255, ${(alpha * 0.45).toFixed(3)})`;
+          ctx.lineWidth = 1.0;
+          ctx.beginPath();
+          ctx.moveTo(px - sparkleLen, py);
+          ctx.lineTo(px + sparkleLen, py);
+          ctx.moveTo(px, py - sparkleLen);
+          ctx.lineTo(px, py + sparkleLen);
+          ctx.stroke();
         }
       }
-      ctx.stroke();
-
-      // Pass 2: Bright Pure-White Front Leading Core
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
-      ctx.lineWidth = 2.8;
-      ctx.beginPath();
-      for (let i = 0; i < renderList.length; i++) {
-        const s = renderList[i];
-        const dx = s.px - s.prevX;
-        const dy = s.py - s.prevY;
-        if (dx * dx + dy * dy > 1.0) {
-          ctx.moveTo((s.prevX + s.px) * 0.5, (s.prevY + s.py) * 0.5);
-          ctx.lineTo(s.px, s.py);
-        }
-      }
-      ctx.stroke();
-
-      // Pass 3: Pure-White Star Heads
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      for (let i = 0; i < renderList.length; i++) {
-        const s = renderList[i];
-        const r = Math.min(2.8, s.currentRadius * 0.95);
-        ctx.moveTo(s.px + r, s.py);
-        ctx.arc(s.px, s.py, r, 0, Math.PI * 2);
-      }
-      ctx.fill();
-
-    } else {
-      // Pass 1: Soft Pure-White Nebula Halos
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
-      ctx.beginPath();
-      for (let i = 0; i < renderList.length; i++) {
-        const s = renderList[i];
-        const glowRadius = s.currentRadius * 2.6;
-        ctx.moveTo(s.px + glowRadius, s.py);
-        ctx.arc(s.px, s.py, glowRadius, 0, Math.PI * 2);
-      }
-      ctx.fill();
-
-      // Pass 2: Crisp Pure-White Radiant Star Cores
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.beginPath();
-      for (let i = 0; i < renderList.length; i++) {
-        const s = renderList[i];
-        ctx.moveTo(s.px + s.currentRadius, s.py);
-        ctx.arc(s.px, s.py, s.currentRadius, 0, Math.PI * 2);
-      }
-      ctx.fill();
-
-      // Pass 3: Delicate Cross Sparkles
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.40)';
-      ctx.lineWidth = 1.0;
-      ctx.beginPath();
-      for (let i = 0; i < renderList.length; i++) {
-        const s = renderList[i];
-        if (s.hasSparkle && s.depthRatio > 0.45 && s.alpha > 0.65) {
-          const sparkleLen = s.currentRadius * 2.2;
-          ctx.moveTo(s.px - sparkleLen, s.py);
-          ctx.lineTo(s.px + sparkleLen, s.py);
-          ctx.moveTo(s.px, s.py - sparkleLen);
-          ctx.lineTo(s.px, s.py + sparkleLen);
-        }
-      }
-      ctx.stroke();
     }
   }
 }

@@ -44,39 +44,13 @@ class AuraBeamEngine {
 
     this.resize();
 
-    // 🌟 Pre-allocated static object pools & pre-baked color strings (Zero per-frame allocations)
+    // 🌟 Pre-allocated static object pools to eliminate GC churn (Zero per-frame allocations)
     this.maxSteps = 180;
-    this.numChunks = 15;
-    this.stepsPerChunk = this.maxSteps / this.numChunks; // 12 steps per chunk
     this.ptsPool = [];
     this.colorsPool = [];
-    this.chunkStyles = [];
-
     for (let i = 0; i <= this.maxSteps; i++) {
       this.ptsPool.push({ x: 0, y: 0 });
-      const col = { r: 0, g: 0, b: 0, a: 0, core: 0 };
-      this.interpolateColorInto(i / this.maxSteps, col);
-      this.colorsPool.push(col);
-    }
-
-    for (let c = 0; c < this.numChunks; c++) {
-      const startIdx = c * this.stepsPerChunk;
-      const endIdx = (c === this.numChunks - 1) ? this.maxSteps : (c + 1) * this.stepsPerChunk;
-      const midIdx = Math.round((startIdx + endIdx) / 2);
-      const cm = this.colorsPool[midIdx];
-      const wr = Math.round(255 * 0.75 + cm.r * 0.25);
-      const wg = Math.round(255 * 0.75 + cm.g * 0.25);
-      const wb = Math.round(255 * 0.75 + cm.b * 0.25);
-
-      this.chunkStyles.push({
-        startIdx,
-        endIdx,
-        hasColor: cm.a > 0.005,
-        hasCore: cm.core > 0.005,
-        bloomStyle: `rgba(${cm.r}, ${cm.g}, ${cm.b}, ${(cm.a * 0.35).toFixed(3)})`,
-        neonStyle: `rgba(${cm.r}, ${cm.g}, ${cm.b}, ${(cm.a * 0.90).toFixed(3)})`,
-        coreStyle: `rgba(${wr}, ${wg}, ${wb}, ${(cm.core * 0.95).toFixed(3)})`
-      });
+      this.colorsPool.push({ r: 0, g: 0, b: 0, a: 0, core: 0 });
     }
 
     if (window.ResizeObserver) {
@@ -117,7 +91,7 @@ class AuraBeamEngine {
     this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
   }
 
-  populatePointAtDistance(d, outPt) {
+  getPointAtDistance(d) {
     const p = ((d % this.totalPerimeter) + this.totalPerimeter) % this.totalPerimeter;
     const pad = this.padding;
     const R = this.radius;
@@ -131,36 +105,29 @@ class AuraBeamEngine {
 
     // 1. Top horizontal straight segment (left -> right)
     if (p <= L1) {
-      outPt.x = pad + R + p;
-      outPt.y = pad;
-      return;
+      return { x: pad + R + p, y: pad };
     }
     // 2. Right semicircle (top -> bottom)
     if (p <= L1 + L2) {
       const delta = p - L1;
       const angle = -Math.PI / 2 + (delta / L2) * Math.PI;
-      outPt.x = pad + (W - R) + R * Math.cos(angle);
-      outPt.y = pad + R + R * Math.sin(angle);
-      return;
+      return {
+        x: pad + (W - R) + R * Math.cos(angle),
+        y: pad + R + R * Math.sin(angle)
+      };
     }
     // 3. Bottom horizontal straight segment (right -> left)
     if (p <= L1 + L2 + L3) {
       const delta = p - (L1 + L2);
-      outPt.x = pad + (W - R) - delta;
-      outPt.y = pad + H;
-      return;
+      return { x: pad + (W - R) - delta, y: pad + H };
     }
     // 4. Left semicircle (bottom -> top)
     const delta = p - (L1 + L2 + L3);
     const angle = Math.PI / 2 + (delta / L4) * Math.PI;
-    outPt.x = pad + R + R * Math.cos(angle);
-    outPt.y = pad + R + R * Math.sin(angle);
-  }
-
-  getPointAtDistance(d) {
-    const pt = { x: 0, y: 0 };
-    this.populatePointAtDistance(d, pt);
-    return pt;
+    return {
+      x: pad + R + R * Math.cos(angle),
+      y: pad + R + R * Math.sin(angle)
+    };
   }
 
   update(dt, rawBass = 0.0, rawMid = 0.0, isPlaying = true) {
@@ -209,54 +176,106 @@ class AuraBeamEngine {
 
     // Reuse pre-allocated object pools (Zero GC allocations in hot loop)
     for (let i = 0; i <= steps; i++) {
-      this.populatePointAtDistance(this.distance + i * stepDist, this.ptsPool[i]);
+      const d = this.distance + i * stepDist;
+      const progress = i / steps;
+      const pt = this.getPointAtDistance(d);
+      this.ptsPool[i].x = pt.x;
+      this.ptsPool[i].y = pt.y;
+      this.interpolateColorInto(progress, this.colorsPool[i]);
     }
 
     ctx.lineCap = 'butt'; // Zero circular beads/dots
     ctx.lineJoin = 'round';
 
-    const chunks = this.chunkStyles;
-    const numChunks = chunks.length;
+    // 🌟 Continuous polyline chunks with linear gradient interpolation.
+    // 100% seamless, smooth, silky Chroma rainbow laser beam.
+    const numChunks = 15;
+    const stepsPerChunk = steps / numChunks; // 12 steps per chunk
 
     // 🌟 LAYER 1: Ethereal Bloom (9.5px, completely continuous & zero shrinking)
-    ctx.lineWidth = 9.5;
+    const bloomWidth = 9.5;
     for (let c = 0; c < numChunks; c++) {
-      const ch = chunks[c];
-      if (!ch.hasColor) continue;
+      const startIdx = c * stepsPerChunk;
+      const endIdx = (c === numChunks - 1) ? steps : (c + 1) * stepsPerChunk;
+      const c0 = this.colorsPool[startIdx];
+      const c1 = this.colorsPool[endIdx];
+
+      if (c0.a <= 0.005 && c1.a <= 0.005) continue;
+
+      const p0 = this.ptsPool[startIdx];
+      const p1 = this.ptsPool[endIdx];
+      const grad = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
+      grad.addColorStop(0, `rgba(${c0.r}, ${c0.g}, ${c0.b}, ${(c0.a * 0.35).toFixed(3)})`);
+      grad.addColorStop(1, `rgba(${c1.r}, ${c1.g}, ${c1.b}, ${(c1.a * 0.35).toFixed(3)})`);
+
       ctx.beginPath();
-      ctx.moveTo(this.ptsPool[ch.startIdx].x, this.ptsPool[ch.startIdx].y);
-      for (let j = ch.startIdx + 1; j <= ch.endIdx; j++) {
+      ctx.moveTo(p0.x, p0.y);
+      for (let j = startIdx + 1; j <= endIdx; j++) {
         ctx.lineTo(this.ptsPool[j].x, this.ptsPool[j].y);
       }
-      ctx.strokeStyle = ch.bloomStyle;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = bloomWidth;
       ctx.stroke();
     }
 
     // 🌟 LAYER 2: Vibrant Chroma Laser Filament (3.4px, completely seamless)
-    ctx.lineWidth = 3.4;
+    const neonWidth = 3.4;
     for (let c = 0; c < numChunks; c++) {
-      const ch = chunks[c];
-      if (!ch.hasColor) continue;
+      const startIdx = c * stepsPerChunk;
+      const endIdx = (c === numChunks - 1) ? steps : (c + 1) * stepsPerChunk;
+      const c0 = this.colorsPool[startIdx];
+      const c1 = this.colorsPool[endIdx];
+
+      if (c0.a <= 0.005 && c1.a <= 0.005) continue;
+
+      const p0 = this.ptsPool[startIdx];
+      const p1 = this.ptsPool[endIdx];
+      const grad = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
+      grad.addColorStop(0, `rgba(${c0.r}, ${c0.g}, ${c0.b}, ${(c0.a * 0.90).toFixed(3)})`);
+      grad.addColorStop(1, `rgba(${c1.r}, ${c1.g}, ${c1.b}, ${(c1.a * 0.90).toFixed(3)})`);
+
       ctx.beginPath();
-      ctx.moveTo(this.ptsPool[ch.startIdx].x, this.ptsPool[ch.startIdx].y);
-      for (let j = ch.startIdx + 1; j <= ch.endIdx; j++) {
+      ctx.moveTo(p0.x, p0.y);
+      for (let j = startIdx + 1; j <= endIdx; j++) {
         ctx.lineTo(this.ptsPool[j].x, this.ptsPool[j].y);
       }
-      ctx.strokeStyle = ch.neonStyle;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = neonWidth;
       ctx.stroke();
     }
 
     // 🌟 LAYER 3: White-Hot Photon Laser Core (1.6px, pure optical center)
-    ctx.lineWidth = 1.6;
+    const coreWidth = 1.6;
     for (let c = 0; c < numChunks; c++) {
-      const ch = chunks[c];
-      if (!ch.hasCore) continue;
+      const startIdx = c * stepsPerChunk;
+      const endIdx = (c === numChunks - 1) ? steps : (c + 1) * stepsPerChunk;
+      const c0 = this.colorsPool[startIdx];
+      const c1 = this.colorsPool[endIdx];
+
+      if (c0.core <= 0.005 && c1.core <= 0.005) continue;
+
+      const p0 = this.ptsPool[startIdx];
+      const p1 = this.ptsPool[endIdx];
+
+      const wr0 = Math.round(255 * 0.75 + c0.r * 0.25);
+      const wg0 = Math.round(255 * 0.75 + c0.g * 0.25);
+      const wb0 = Math.round(255 * 0.75 + c0.b * 0.25);
+
+      const wr1 = Math.round(255 * 0.75 + c1.r * 0.25);
+      const wg1 = Math.round(255 * 0.75 + c1.g * 0.25);
+      const wb1 = Math.round(255 * 0.75 + c1.b * 0.25);
+
+      const grad = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
+      grad.addColorStop(0, `rgba(${wr0}, ${wg0}, ${wb0}, ${(c0.core * 0.95).toFixed(3)})`);
+      grad.addColorStop(1, `rgba(${wr1}, ${wg1}, ${wb1}, ${(c1.core * 0.95).toFixed(3)})`);
+
       ctx.beginPath();
-      ctx.moveTo(this.ptsPool[ch.startIdx].x, this.ptsPool[ch.startIdx].y);
-      for (let j = ch.startIdx + 1; j <= ch.endIdx; j++) {
+      ctx.moveTo(p0.x, p0.y);
+      for (let j = startIdx + 1; j <= endIdx; j++) {
         ctx.lineTo(this.ptsPool[j].x, this.ptsPool[j].y);
       }
-      ctx.strokeStyle = ch.coreStyle;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = coreWidth;
       ctx.stroke();
     }
 
