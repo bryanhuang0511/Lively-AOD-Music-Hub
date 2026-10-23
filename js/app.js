@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3. Initialize Core Deep Modules
   const playbackSession = new PlaybackSession({
-    pauseTimeout: 1600,
+    pauseTimeout: 2400,
     sleepTimeout: 30000,
     defaultDuration: 210
   });
@@ -60,7 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
     viewportId: 'lyricsViewport',
     trackId: 'lyricsTrack',
     onSeek: (targetTime) => playbackSession.seek(targetTime),
-    onDurationResolved: (duration) => playbackSession.setDuration(duration)
+    onDurationResolved: (duration) => {
+      playbackSession.setDuration(duration);
+      lyricsEngine.sync(playbackSession.playbackTime, playbackSession.isPaused);
+    }
   });
 
   const auraBeamEngine = new AuraBeamEngine('auraCanvas', 'glassCapsule');
@@ -106,11 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-  // 5. Connect Audio Ingestion via AudioListenerEngine
+  // 5. Connect Audio & Timeline Ingestion via AudioListenerEngine
   const audioEngine = new AudioListenerEngine(
     (bass, mid, treble, rawFft) => playbackSession.feedAudio(bass, mid, treble, rawFft),
     (trackInfo) => playbackSession.setTrack(trackInfo),
-    (isPaused) => playbackSession.setAuthoritativePause(isPaused)
+    (isPaused) => playbackSession.setAuthoritativePause(isPaused),
+    (timelineData) => playbackSession.syncExternalTimeline(timelineData)
   );
 
   // 6. User Interactions

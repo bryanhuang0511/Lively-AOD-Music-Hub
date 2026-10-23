@@ -1,6 +1,6 @@
-# 🎵 音樂AOD電腦桌布視覺播放器 (v1.3.1 深模組與效能優化版)
+# 🎵 音樂AOD電腦桌布視覺播放器 (v1.4.0 LyricsPlus 逐字與快轉同步版)
 
-> **版本**：`v1.3.1 (Performance & Deep Modular Architecture)`  
+> **版本**：`v1.4.0 (LyricsPlus Syllable Sync & GSMTC Fast-Forward Tunnel)`  
 > **作者**：`原來如此>_<`  
 > **適用平台**：Windows 10 / 11 ✖ Lively Wallpaper ✖ WebView2  
 > **授權協議**：MIT License  
@@ -13,11 +13,11 @@
 
 ```mermaid
 graph TD
-  A["🎵 Windows 系統音訊 / GSMTC 播放器<br/>(Spotify, Apple Music, YouTube, 瀏覽器等)"] --> B["🎧 audio_listener.js (AudioPort 接縫)<br/>• LivelyWasapiAdapter (WASAPI 迴路)<br/>• WebAudioFileAdapter (本地拖曳音訊)"]
-  B --> PS["🌌 playback_session.js (PlaybackSession 深模組)<br/>• 單調時鐘積分 & 400ms 抗噪濾波<br/>• 1.6s 暫停 / 30s 純黑待機休眠<br/>• 4s 切歌保護盾 & GSMTC 權威鎖定"]
+  A["🎵 Windows 系統音訊 / GSMTC 播放器<br/>(Spotify, Apple Music, YouTube, 瀏覽器等)"] --> B["🎧 audio_listener.js (AudioPort 接縫)<br/>• LivelyWasapiAdapter (WASAPI 迴路 & GSMTC 隱寫解碼)<br/>• WebAudioFileAdapter (本地拖曳音訊)"]
+  B --> PS["🌌 playback_session.js (PlaybackSession 深模組)<br/>• 單調時鐘積分 & 抒情留白時間補償<br/>• 2.4s 軟暫停 / 30s 純黑待機休眠<br/>• 4s 切歌保護盾 & 快轉即時相位校準"]
   PS --> C["🚀 app.js (極簡視圖調度器)<br/>• 膠囊自適應跑馬燈 & 點擊事件<br/>• 統一 requestAnimationFrame 幀調度"]
   PS --> D["🌌 aura_beam.js (AuraBeamEngine)<br/>• 周長真實弧長積分 (恆定 500px 長度)<br/>• Rainmeter 30ms/330ms DSP 調速 (14.1倍速階)<br/>• 單一路徑平滑光弧 (0 圈點、0 階梯)"]
-  PS --> E["🎤 lyrics_engine.js (LyricsEngine 深模組)<br/>• 內部純 LrcParser 解析接縫 (0 DOM 依賴)<br/>• LrcCache 透明快取接縫<br/>• 首句毫秒級時間戳咬合 & 尾奏 4s 自動消隱"]
+  PS --> E["🎤 lyrics_engine.js (LyricsEngine v1.4 深模組)<br/>• LyricsPlus 逐字同步 & LRCLIB 智慧評分雙源並聯<br/>• 智慧歌名拆解、LrcCache v2 快取 & 滾輪 ±0.25s 微調<br/>• 首句毫秒級時間戳咬合 & 尾奏 4s 自動消隱"]
   PS --> S["✨ starfield_engine.js (StarfieldEngine)<br/>• 待機 3D 溫柔漂移 & 重低音曲速穿梭"]
   C --> F["💎 index.html & style.css<br/>• 1.2X 居中黑曜石純黑液態玻璃<br/>• 3行光學景深虛化歌詞<br/>• 2K 144Hz 硬體加速分層"]
 ```
@@ -33,8 +33,8 @@ graph TD
 | **向量渲染** | Canvas 2D API | 物理周長弧長參數化積分，繪製絲滑無瑕的 Google Chroma 雷射光軌 |
 | **動態排版** | `ResizeObserver` | 歌曲名稱長短變化時毫秒級重測周長，光軌與膠囊 100% 精準貼合 |
 | **音訊通訊** | WASAPI Loopback | Lively Wallpaper 原生 128 頻段音訊頻譜（低/中/高頻實時解析） |
-| **媒體控制** | Windows GSMTC | 跨平台抓取 Spotify, Apple Music, YouTube, 瀏覽器當前曲目與歌手 |
-| **在線歌詞** | LRCLIB REST API | 免費高速同步歌詞資料庫，支援精確 LRC 時間軸與純文字備援 |
+| **媒體控制** | Windows GSMTC + 隱寫通道 | 跨平台抓取當前曲目與歌手，並透過 `AlbumTitle` 隱寫通道實現瀏覽器零伺服器快轉同步 |
+| **在線歌詞** | LyricsPlus + LRCLIB 雙源 | 並聯請求 Apple Music/QQ/Musixmatch 官方逐字軸 (`syllabus`) 與 LRCLIB 智慧評分歌詞庫 |
 | **字體排版** | Plus Jakarta Sans & Outfit | Google Fonts 頂級幾何無襯線字體，兼具科技感與極致易讀性 |
 
 ---
@@ -54,11 +54,14 @@ Lively_AOD_Music_Hub/
 │   └── demo_lyrics.lrc                     # 離線測試 LRC 歌詞範例檔
 ├── css/
 │   └── style.css                           # 完整樣式表 (黑曜石晶體、光學景深歌詞、硬體加速分層)
+├── tools/
+│   ├── browser_sync_extension/             # 【v1.4】零伺服器 GSMTC 隱寫快轉同步 Chrome/Edge 擴充套件
+│   └── timeline_bridge.ps1                 # 【v1.4】Windows GSMTC 本機時間軸同步橋接腳本
 └── js/
     ├── app.js                              # 極簡視圖調度器 (膠囊跑馬燈、事件綁定與動畫迴圈)
-    ├── playback_session.js                 # 【深模組】狀態機、時鐘積分、400ms抗噪與30s待機休眠
-    ├── lyrics_engine.js                    # 【深模組】LyricsEngine 3行景深歌詞、內部純 LrcParser/LrcCache
-    ├── audio_listener.js                   # 【接縫】AudioPort 接縫與 Lively WASAPI / WebAudio 雙配接器
+    ├── playback_session.js                 # 【深模組】狀態機、時鐘積分、抒情留白補償與快轉同步
+    ├── lyrics_engine.js                    # 【深模組】LyricsEngine v1.4 (LyricsPlus 逐字 + LRCLIB 評分)
+    ├── audio_listener.js                   # 【接縫】AudioPort 接縫與 Lively WASAPI / GSMTC 隱寫解碼
     ├── aura_beam.js                        # 【核心】AuraBeamEngine 周長等弧長光軌 ✖ Rainmeter DSP 調速
     └── starfield_engine.js                 # 【核心】StarfieldEngine 動態星空背景 (待機漂移 / 重低音曲速穿梭)
 ```
@@ -150,5 +153,5 @@ Lively_AOD_Music_Hub/
 ---
 
 ### 👑 檔案歸檔與基線確認
-- **檔案狀態**：`v1.0.0 正式歸檔完成`
+- **檔案狀態**：`v1.4.0 正式歸檔完成`
 - **維護者**：`原來如此>_<`

@@ -1,9 +1,9 @@
 /**
  * ============================================================================
- * 🎵 AudioPort & Adapters - Clean Audio Ingestion Architecture
+ * 🎵 AudioPort & Adapters - Clean Audio & Timeline Ingestion Architecture
  * ============================================================================
- * Two concrete adapters satisfy the AudioPort seam:
- * 1. LivelyWasapiAdapter: Windows GSMTC & WASAPI 128-band loopback (prod).
+ * Concrete adapters satisfy the AudioPort seam:
+ * 1. LivelyWasapiAdapter: Windows GSMTC, WASAPI 128-band loopback & Local Timeline Bridge.
  * 2. WebAudioFileAdapter: Local file AudioContext & AnalyserNode playback (local/fallback).
  *
  * CRITICAL FOR LIVELY WALLPAPER:
@@ -22,6 +22,7 @@ class AudioPort {
     this.audioCallback = null;
     this.trackCallback = null;
     this.playbackCallback = null;
+    this.timelineCallback = null;
   }
 
   onAudio(callback) {
@@ -36,6 +37,11 @@ class AudioPort {
 
   onPlaybackChange(callback) {
     this.playbackCallback = callback;
+    return this;
+  }
+
+  onTimeline(callback) {
+    this.timelineCallback = callback;
     return this;
   }
 
@@ -56,15 +62,23 @@ class AudioPort {
       this.playbackCallback(isPaused);
     }
   }
+
+  emitTimeline(timelineData) {
+    if (this.timelineCallback) {
+      this.timelineCallback(timelineData);
+    }
+  }
 }
 
 /**
- * LivelyWasapiAdapter - Concrete adapter for Windows WASAPI Loopback & GSMTC Media
+ * LivelyWasapiAdapter - Concrete adapter for Windows WASAPI Loopback, GSMTC Media & Timeline Sync
  */
 class LivelyWasapiAdapter {
   constructor(port) {
     this.port = port;
+    this.bridgeConnected = false;
     this.bindLivelyGlobals();
+    this.startTimelineBridgePoller();
   }
 
   bindLivelyGlobals() {
@@ -89,21 +103,48 @@ class LivelyWasapiAdapter {
       this.port.emitAudio(bass, mid, treble, window._livelyAudioRawFft);
     };
 
-    // 2. Windows GSMTC Track & Album Art Listener
+    // 2. Windows GSMTC Track, Album Art & Native Metadata Tunnel Listener
     window.livelyCurrentTrack = (data) => {
       try {
         const track = typeof data === 'string' ? JSON.parse(data) : data;
         if (!track) return;
 
+        let rawAlbum = String(track.AlbumTitle || track.album || '');
+        let tunnelPos = typeof track.Position === 'number' ? track.Position : (typeof track.position === 'number' ? track.position : undefined);
+        let tunnelDur = typeof track.Duration === 'number' ? track.Duration : (typeof track.duration === 'number' ? track.duration : undefined);
+        let tunnelPlaying = undefined;
+
+        // Decode GSMTC Album Metadata Tunnel (#aod_t=<pos>_<dur>_<play>) from Browser Extension
+        const tunnelMatch = rawAlbum.match(/\s*#aod_t=([\d.]+)_([\d.]+)_([01])$/);
+        if (tunnelMatch) {
+          tunnelPos = parseFloat(tunnelMatch[1]);
+          const parsedDur = parseFloat(tunnelMatch[2]);
+          if (parsedDur > 20) tunnelDur = parsedDur;
+          tunnelPlaying = tunnelMatch[3] === '1';
+          rawAlbum = rawAlbum.replace(/\s*#aod_t=[\d.]+_[\d.]+_[01]$/, '').trim();
+        }
+
         const info = {
           title: track.Title || track.title || '',
           artist: track.Artist || track.artist || '',
-          album: track.AlbumTitle || track.album || '',
+          album: rawAlbum,
           thumbnail: track.Thumbnail || track.thumbnail || null,
-          genres: track.Genres || track.genres || []
+          genres: track.Genres || track.genres || [],
+          position: tunnelPos,
+          duration: tunnelDur
         };
 
         this.port.emitTrack(info);
+
+        if (typeof tunnelPos === 'number' && Number.isFinite(tunnelPos)) {
+          this.port.emitTimeline({
+            title: info.title,
+            artist: info.artist,
+            position: tunnelPos,
+            duration: tunnelDur,
+            isPlaying: tunnelPlaying
+          });
+        }
       } catch (e) {
         console.warn('Error parsing livelyCurrentTrack:', e);
       }
@@ -120,6 +161,77 @@ class LivelyWasapiAdapter {
         console.warn('Error handling livelyWallpaperPlaybackChanged:', e);
       }
     };
+
+    // 4. Direct Timeline Sync Hook (for external injection or custom WebView2 bridges)
+    window.livelyTimelineSync = (data) => {
+      try {
+        const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+        if (parsed) {
+          this.port.emitTimeline(parsed);
+        }
+      } catch (e) {}
+    };
+  }
+
+  /**
+   * Adaptive Localhost Timeline Poller (http://127.0.0.1:8974/timeline)
+   * Syncs millisecond-exact playback position & fast-forward/rewind events
+   * from Windows GSMTC Timeline Bridge or Browser Extension when active.
+   * Zero console noise & backs off to 4.5s when bridge is not running.
+   */
+  startTimelineBridgePoller() {
+    const BRIDGE_URL = 'http://127.0.0.1:8974/timeline';
+
+    const poll = async () => {
+      if (document.hidden) {
+        setTimeout(poll, 2000);
+        return;
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 800);
+
+      try {
+        const res = await fetch(BRIDGE_URL, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+          const data = await res.json();
+          this.bridgeConnected = true;
+          if (data && data.active) {
+            if (data.title) {
+              this.port.emitTrack({
+                title: data.title,
+                artist: data.artist || '',
+                album: data.album || '',
+                position: data.position,
+                duration: data.duration
+              });
+            }
+            this.port.emitTimeline({
+              title: data.title || '',
+              artist: data.artist || '',
+              position: data.position,
+              duration: data.duration,
+              isPlaying: data.isPlaying
+            });
+          }
+          setTimeout(poll, 320);
+          return;
+        }
+      } catch (e) {
+        clearTimeout(timer);
+        this.bridgeConnected = false;
+      }
+
+      setTimeout(poll, this.bridgeConnected ? 1000 : 4500);
+    };
+
+    setTimeout(poll, 1200);
   }
 }
 
@@ -176,6 +288,13 @@ class WebAudioFileAdapter {
           const treble = Math.min(1.0, (tSum / 64) * 2.8);
 
           this.port.emitAudio(bass, mid, treble, window._livelyAudioRawFft);
+          if (Number.isFinite(this.audioElement.currentTime)) {
+            this.port.emitTimeline({
+              position: this.audioElement.currentTime,
+              duration: Number.isFinite(this.audioElement.duration) ? this.audioElement.duration : undefined,
+              isPlaying: !this.audioElement.paused
+            });
+          }
         }
         requestAnimationFrame(updateLoop);
       };
@@ -192,11 +311,12 @@ class WebAudioFileAdapter {
  * AudioListenerEngine - Unified Facade combining AudioPort and both Adapters
  */
 class AudioListenerEngine {
-  constructor(onAudio, onTrack, onPlaybackChange) {
+  constructor(onAudio, onTrack, onPlaybackChange, onTimeline) {
     this.port = new AudioPort()
       .onAudio(onAudio)
       .onTrack(onTrack)
-      .onPlaybackChange(onPlaybackChange);
+      .onPlaybackChange(onPlaybackChange)
+      .onTimeline(onTimeline);
 
     this.livelyAdapter = new LivelyWasapiAdapter(this.port);
     this.webAudioAdapter = new WebAudioFileAdapter(this.port);
