@@ -78,7 +78,11 @@ class LivelyWasapiAdapter {
     this.port = port;
     this.bridgeConnected = false;
     this.bindLivelyGlobals();
-    this.startTimelineBridgePoller();
+    // Zero-Width GSMTC Steganography Tunnel handles real-time seek natively;
+    // only poll localhost HTTP bridge if explicitly requested.
+    if (window.ENABLE_LOCAL_TIMELINE_BRIDGE === true) {
+      this.startTimelineBridgePoller();
+    }
   }
 
   /**

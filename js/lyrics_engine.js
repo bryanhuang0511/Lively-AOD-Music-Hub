@@ -740,16 +740,16 @@ class LyricsEngine {
     if (targetIndex >= 0) {
       if (targetIndex !== this.currentIndex) {
         this.currentIndex = targetIndex;
+        this.lastWipeStep = -1;
         this.scrollToIndex(targetIndex, true);
       }
 
-      // 4. Syllable-Accurate / Line Wipe Progress Calculation
+      // 4. Syllable-Accurate / Line Wipe Progress Calculation (Throttled to 5% steps to prevent 144Hz DOM style thrashing)
       const currentItem = this.lyrics[targetIndex];
       const nextItem = this.lyrics[targetIndex + 1];
       let ratio = 0.0;
 
       if (currentItem.words && currentItem.words.length > 1) {
-        // Syllable-level progress (LyricsPlus / Enhanced LRC)
         const words = currentItem.words;
         let completedChars = 0;
         let totalChars = 0;
@@ -775,9 +775,13 @@ class LyricsEngine {
         ratio = Math.min(1.0, Math.max(0.0, elapsed / duration));
       }
 
-      const percentStr = (ratio * 100).toFixed(1) + '%';
-      if (this.track && this.track.children[targetIndex]) {
-        this.track.children[targetIndex].style.setProperty('--wipe-progress', percentStr);
+      const wipeStep = Math.round(ratio * 20);
+      if (wipeStep !== this.lastWipeStep) {
+        this.lastWipeStep = wipeStep;
+        const percentStr = (wipeStep * 5) + '%';
+        if (this.track && this.track.children[targetIndex]) {
+          this.track.children[targetIndex].style.setProperty('--wipe-progress', percentStr);
+        }
       }
     }
   }
@@ -1063,17 +1067,18 @@ class LyricsEngine {
 
     for (let i = 0; i < lines.length; i++) {
       const el = lines[i];
+      let wantClass = 'lyric-line';
       if (i === index) {
-        el.className = 'lyric-line is-active';
+        wantClass = 'lyric-line is-active';
       } else if (i === index - 1) {
-        el.className = 'lyric-line is-prev';
-        el.style.setProperty('--wipe-progress', '100%');
+        wantClass = 'lyric-line is-prev';
       } else if (i === index + 1) {
-        el.className = 'lyric-line is-next';
-        el.style.setProperty('--wipe-progress', '0%');
-      } else {
-        el.className = 'lyric-line';
-        el.style.setProperty('--wipe-progress', '0%');
+        wantClass = 'lyric-line is-next';
+      } else if (i === index - 2 || i === index + 2) {
+        wantClass = 'lyric-line is-near';
+      }
+      if (el.className !== wantClass) {
+        el.className = wantClass;
       }
     }
 

@@ -37,8 +37,52 @@ class StarfieldEngine {
     this.resize();
     window.addEventListener('resize', () => this.resize());
 
+    // Pre-bake Offscreen Star Sprite Atlas (Eliminates 110 createRadialGradient calls/frame)
+    this.spriteBuckets = 8;
+    this.spriteSize = 32;
+    this.starSprites = [];
+    this.initStarSprites();
+
     // Initialize Stars
     this.initStars();
+  }
+
+  /**
+   * Pre-bake 8 high-DPI offscreen star sprites across the 195°~250° cosmic hue spectrum.
+   * Each sprite contains both the 2.8x soft nebula halo glow and the crisp radiant core,
+   * reducing per-star idle rendering to a single hardware-accelerated drawImage() call!
+   */
+  initStarSprites() {
+    this.starSprites = [];
+    const size = this.spriteSize;
+    const half = size / 2;
+    const coreRadius = half / 2.8;
+
+    for (let b = 0; b < this.spriteBuckets; b++) {
+      const hue = Math.round(195 + (b / (this.spriteBuckets - 1)) * 55);
+      const offscreen = document.createElement('canvas');
+      offscreen.width = size;
+      offscreen.height = size;
+      const octx = offscreen.getContext('2d');
+
+      // 1. Soft Nebula Halo Glow
+      const glowGrad = octx.createRadialGradient(half, half, 0, half, half, half);
+      glowGrad.addColorStop(0, `hsla(${hue}, 90%, 80%, 0.55)`);
+      glowGrad.addColorStop(0.5, `hsla(${hue}, 80%, 65%, 0.18)`);
+      glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      octx.beginPath();
+      octx.arc(half, half, half, 0, Math.PI * 2);
+      octx.fillStyle = glowGrad;
+      octx.fill();
+
+      // 2. Pure White Radiant Core
+      octx.beginPath();
+      octx.arc(half, half, coreRadius, 0, Math.PI * 2);
+      octx.fillStyle = `hsla(${hue}, 60%, 96%, 1.0)`;
+      octx.fill();
+
+      this.starSprites.push(offscreen);
+    }
   }
 
   resize() {
@@ -66,13 +110,17 @@ class StarfieldEngine {
 
   createStar(randomDepth = false) {
     const spread = Math.max(this.width, this.height) * 1.2;
+    const bucket = Math.floor(Math.random() * this.spriteBuckets);
+    const colorHue = Math.round(195 + (bucket / Math.max(1, this.spriteBuckets - 1)) * 55);
     return {
       x: (Math.random() - 0.5) * spread,
       y: (Math.random() - 0.5) * spread,
       z: randomDepth ? Math.random() * this.maxDepth : this.maxDepth,
       prevZ: randomDepth ? Math.random() * this.maxDepth : this.maxDepth,
       baseRadius: 1.6 + Math.random() * 1.8, // 🌟 待機時清晰可辨的星點半徑 (1.6px ~ 3.4px)
-      colorHue: 195 + Math.random() * 55, // 冰藍、天青至冷白宇宙色調
+      colorHue, // 冰藍、天青至冷白宇宙色調
+      sprite: this.starSprites[bucket],
+      warpColor: `hsl(${colorHue}, 85%, 76%)`,
       twinklePhase: Math.random() * Math.PI * 2,
       twinkleSpeed: 0.02 + Math.random() * 0.035,
       driftAngle: Math.random() * Math.PI * 2,
@@ -150,7 +198,9 @@ class StarfieldEngine {
     this.idleAngle += dt * 0.12;
     const isHighSpeed = this.currentSpeed > 1.8;
 
-    // 3. Render Stars
+    ctx.lineCap = 'round';
+
+    // 3. Render Stars (Zero per-frame Gradient/String Allocations)
     for (let i = 0; i < this.stars.length; i++) {
       const star = this.stars[i];
       star.twinklePhase += star.twinkleSpeed;
@@ -179,11 +229,6 @@ class StarfieldEngine {
       const px = star.x * k + cx;
       const py = star.y * k + cy;
 
-      // Previous position projection (for warp streak)
-      const pk = fov / Math.max(10, star.prevZ + (this.currentSpeed * this.warpTrailFactor));
-      const prevX = star.x * pk + cx;
-      const prevY = star.y * pk + cy;
-
       // Out-of-bounds check
       if (px < -60 || px > w + 60 || py < -60 || py > h + 60) {
         star.z = this.maxDepth;
@@ -201,55 +246,43 @@ class StarfieldEngine {
       const currentRadius = Math.max(1.2, star.baseRadius * (0.65 + depthRatio * 0.65));
 
       if (isHighSpeed) {
-        // 🚀 Warp Mode: Draw Radial Shooting Light Beam / Streak Lines
-        const streakDist = Math.hypot(px - prevX, py - prevY);
-        if (streakDist > 1.0) {
-          const grad = ctx.createLinearGradient(prevX, prevY, px, py);
-          grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-          grad.addColorStop(0.55, `hsla(${star.colorHue}, 85%, 75%, ${alpha * 0.65})`);
-          grad.addColorStop(1, `rgba(255, 255, 255, ${Math.min(1, alpha * 1.2)})`);
+        // Previous position projection (for warp streak)
+        const pk = fov / Math.max(10, star.prevZ + (this.currentSpeed * this.warpTrailFactor));
+        const prevX = star.x * pk + cx;
+        const prevY = star.y * pk + cy;
 
+        // 🚀 Warp Mode: Zero-Gradient Radial Shooting Light Beam
+        const dx = px - prevX;
+        const dy = py - prevY;
+        if (dx * dx + dy * dy > 1.0) {
+          ctx.globalAlpha = alpha * 0.65;
+          ctx.strokeStyle = star.warpColor;
+          ctx.lineWidth = Math.min(3.2, currentRadius * 1.2);
           ctx.beginPath();
           ctx.moveTo(prevX, prevY);
           ctx.lineTo(px, py);
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = Math.min(3.2, currentRadius * 1.2);
-          ctx.lineCap = 'round';
           ctx.stroke();
         }
 
         // Draw bright leading star head
+        ctx.globalAlpha = Math.min(1.0, alpha * 1.15);
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(px, py, Math.min(2.8, currentRadius * 0.95), 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
         ctx.fill();
 
       } else {
-        // 🪐 Idle Mode: Draw Crisp, Clearly Visible Stars with Soft Aura Glow
-        // (Clean vector rendering without the CPU-expensive shadowBlur convolution)
-        
-        // 1. Soft Nebula Halo Glow
+        // 🪐 Idle Mode: Hardware-Accelerated Sprite Blit (Zero RadialGradient allocations!)
         const glowRadius = currentRadius * 2.8;
-        const glowGrad = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
-        glowGrad.addColorStop(0, `hsla(${star.colorHue}, 90%, 80%, ${alpha * 0.55})`);
-        glowGrad.addColorStop(0.5, `hsla(${star.colorHue}, 80%, 65%, ${alpha * 0.18})`);
-        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        const diam = glowRadius * 2;
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(star.sprite, px - glowRadius, py - glowRadius, diam, diam);
 
-        ctx.beginPath();
-        ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
-        ctx.fillStyle = glowGrad;
-        ctx.fill();
-
-        // 2. Pure White Radiant Core (晶瑩剔透的核心白點)
-        ctx.beginPath();
-        ctx.arc(px, py, currentRadius, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${star.colorHue}, 60%, 96%, ${alpha})`;
-        ctx.fill();
-
-        // 3. Subtle Cross Sparkle for prominent bright stars (精緻十字微光)
+        // Subtle Cross Sparkle for prominent bright stars (精緻十字微光)
         if (star.hasSparkle && depthRatio > 0.45 && alpha > 0.65) {
           const sparkleLen = currentRadius * 2.2;
-          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.45})`;
+          ctx.globalAlpha = alpha * 0.45;
+          ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 1.0;
           ctx.beginPath();
           ctx.moveTo(px - sparkleLen, py);
@@ -260,6 +293,7 @@ class StarfieldEngine {
         }
       }
     }
+    ctx.globalAlpha = 1.0;
   }
 }
 

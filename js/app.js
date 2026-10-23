@@ -153,9 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 8. Unified Animation Loop with Standby Sleep & Visibility Gating
+  // 8. Unified Animation Loop with Adaptive Frame Pacing (144Hz Playing / 60Hz Idle)
   let lastFrameTime = performance.now();
-  let isStandbyCleared = false;
+  let lastRenderTime = performance.now();
+  const IDLE_FRAME_INTERVAL_MS = 1000 / 62; // ~16.1ms (60Hz smooth idle pacing on 144Hz displays)
 
   function mainLoop(now) {
     requestAnimationFrame(mainLoop);
@@ -169,17 +170,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🌟 Document Visibility Gating:
     // Only halt rendering when the window/wallpaper is completely hidden (e.g. full-screen game/app running)
     if (document.hidden) {
+      lastRenderTime = now;
       return;
     }
 
+    // 🌟 Adaptive Frame Rate Pacing:
+    // - Playing or inertial warp deceleration: Full native 144Hz
+    // - Idle / Paused / Standby: Smooth 60Hz (cuts 58% of idle frame invocations)
+    const isActivelyWarping = playbackSession.isPlaying ||
+      (starfieldEngine && starfieldEngine.currentSpeed > starfieldEngine.idleSpeed + 0.15);
+
+    const renderElapsedMs = now - lastRenderTime;
+    if (!isActivelyWarping && renderElapsedMs < IDLE_FRAME_INTERVAL_MS) {
+      return;
+    }
+
+    const renderDt = Math.min(0.05, renderElapsedMs / 1000);
+    lastRenderTime = now;
+
     // Render Visual Stages (Stars gently drift and Aura Beam gracefully cruises in idle)
     if (starfieldEngine) {
-      starfieldEngine.render(dt);
+      starfieldEngine.render(renderDt);
     }
 
     if (auraBeamEngine) {
       auraBeamEngine.update(
-        dt,
+        renderDt,
         playbackSession.bass,
         playbackSession.mid,
         playbackSession.isPlaying

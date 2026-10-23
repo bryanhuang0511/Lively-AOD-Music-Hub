@@ -1,9 +1,9 @@
 {
-  "AppVersion": "1.4.0.0",
-  "Title": "音樂AOD電腦桌布視覺播放器 (v1.4.0 LyricsPlus 逐字與快轉同步版)",
+  "AppVersion": "1.5.0.0",
+  "Title": "音樂AOD電腦桌布視覺播放器 (v1.5.0 144Hz/60Hz 旗艦極速省電版)",
   "Thumbnail": "assets/preview.png",
   "Preview": "assets/preview.png",
-  "Desc": "極致純黑星空曲速 AOD 音樂視覺播放器 (v1.4.0)：整合 YTM_Immersion LyricsPlus 逐字同步引擎 × 智慧歌名拆解與評分 × 快轉即時時間軸同步 × 0% CPU/GPU 待機負載",
+  "Desc": "極致純黑星空曲速 AOD 音樂視覺播放器 (v1.5.0)：播放 144Hz / 待機 60Hz 智慧變頻 × 離屏星芒圖集 × 視窗外歌詞休眠 × OpenCC 臺灣正體秒翻 × 快轉即時同步",
   "Author": "原來如此>_<",
   "License": "MIT",
   "Contact": "",
