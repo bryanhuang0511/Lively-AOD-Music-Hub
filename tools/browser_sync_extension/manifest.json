@@ -1,8 +1,21 @@
 {
   "manifest_version": 3,
   "name": "Lively AOD Music Hub - Zero-Server Fast-Forward Sync",
-  "version": "1.4.0",
-  "description": "Zero-server GSMTC Album Metadata Tunnel: instantly syncs YouTube Music & YouTube fast-forward/seek timestamps natively into Lively Wallpaper.",
+  "version": "1.4.1",
+  "description": "Zero-Width GSMTC Steganography Tunnel: instantly syncs YouTube Music & YouTube fast-forward/seek timestamps natively into Lively Wallpaper.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Lively AOD Fast-Forward Sync (Active)",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "permissions": [],
   "content_scripts": [
     {

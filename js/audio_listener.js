@@ -81,6 +81,62 @@ class LivelyWasapiAdapter {
     this.startTimelineBridgePoller();
   }
 
+  /**
+   * Decodes invisible Zero-Width Binary Steganography (\u200B=0, \u200C=1)
+   * embedded inside GSMTC Artist / Title strings by the Browser Sync Extension.
+   * Since Chromium's SystemMediaControlsWin only forwards Title & Artist to
+   * Windows GSMTC, and Lively Wallpaper's NpsmNowPlayingService checks
+   * (media.Title != model.Title || media.Artist != model.Artist), encoding
+   * the seek timestamp in zero-width characters triggers instant Lively callbacks
+   * while remaining 100% invisible in Windows UI!
+   */
+  static decodeZeroWidthTunnel(str) {
+    const raw = String(str || '');
+    const startMarker = '\u200D\u200B\u200D';
+    const endMarker = '\u200D\u200C\u200D';
+    const sIdx = raw.indexOf(startMarker);
+    const eIdx = sIdx !== -1 ? raw.indexOf(endMarker, sIdx + 3) : -1;
+
+    if (sIdx === -1 || eIdx === -1) {
+      return {
+        clean: raw.replace(/[\u200B-\u200D\uFEFF]/g, '').trim(),
+        data: null
+      };
+    }
+
+    const bits = raw.slice(sIdx + 3, eIdx);
+    let ascii = '';
+    for (let i = 0; i + 7 <= bits.length; i += 7) {
+      let code = 0;
+      for (let b = 0; b < 7; b++) {
+        code = (code << 1) | (bits[i + b] === '\u200C' ? 1 : 0);
+      }
+      ascii += String.fromCharCode(code);
+    }
+
+    const clean = (raw.slice(0, sIdx) + raw.slice(eIdx + 3))
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .trim();
+
+    const parts = ascii.split('_');
+    if (parts.length >= 3) {
+      const pos = parseFloat(parts[0]);
+      const dur = parseFloat(parts[1]);
+      const playing = parts[2] === '1';
+      if (Number.isFinite(pos) && pos >= 0) {
+        return {
+          clean,
+          data: {
+            position: pos,
+            duration: Number.isFinite(dur) && dur > 20 ? dur : undefined,
+            isPlaying: playing
+          }
+        };
+      }
+    }
+    return { clean, data: null };
+  }
+
   bindLivelyGlobals() {
     // 1. WASAPI 128-Band Audio Spectrum Listener
     window.livelyAudioListener = (audioArray) => {
@@ -103,18 +159,28 @@ class LivelyWasapiAdapter {
       this.port.emitAudio(bass, mid, treble, window._livelyAudioRawFft);
     };
 
-    // 2. Windows GSMTC Track, Album Art & Native Metadata Tunnel Listener
+    // 2. Windows GSMTC Track, Album Art & Zero-Width Steganography Tunnel Listener
     window.livelyCurrentTrack = (data) => {
       try {
         const track = typeof data === 'string' ? JSON.parse(data) : data;
         if (!track) return;
 
-        let rawAlbum = String(track.AlbumTitle || track.album || '');
+        const decodedTitle = LivelyWasapiAdapter.decodeZeroWidthTunnel(track.Title || track.title || '');
+        const decodedArtist = LivelyWasapiAdapter.decodeZeroWidthTunnel(track.Artist || track.artist || '');
+        let rawAlbum = String(track.AlbumTitle || track.album || '').replace(/[\u200B-\u200D\uFEFF]/g, '');
+
         let tunnelPos = typeof track.Position === 'number' ? track.Position : (typeof track.position === 'number' ? track.position : undefined);
         let tunnelDur = typeof track.Duration === 'number' ? track.Duration : (typeof track.duration === 'number' ? track.duration : undefined);
         let tunnelPlaying = undefined;
 
-        // Decode GSMTC Album Metadata Tunnel (#aod_t=<pos>_<dur>_<play>) from Browser Extension
+        const zwData = decodedArtist.data || decodedTitle.data;
+        if (zwData) {
+          tunnelPos = zwData.position;
+          if (zwData.duration) tunnelDur = zwData.duration;
+          tunnelPlaying = zwData.isPlaying;
+        }
+
+        // Fallback text tag check on AlbumTitle
         const tunnelMatch = rawAlbum.match(/\s*#aod_t=([\d.]+)_([\d.]+)_([01])$/);
         if (tunnelMatch) {
           tunnelPos = parseFloat(tunnelMatch[1]);
@@ -125,8 +191,8 @@ class LivelyWasapiAdapter {
         }
 
         const info = {
-          title: track.Title || track.title || '',
-          artist: track.Artist || track.artist || '',
+          title: decodedTitle.clean,
+          artist: decodedArtist.clean,
           album: rawAlbum,
           thumbnail: track.Thumbnail || track.thumbnail || null,
           genres: track.Genres || track.genres || [],
