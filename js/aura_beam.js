@@ -15,7 +15,6 @@ class AuraBeamEngine {
     this.capsule = document.getElementById(capsuleId);
     if (!this.canvas || !this.capsule) return;
     this.ctx = this.canvas.getContext('2d', {
-      desynchronized: true,
       willReadFrequently: false
     });
 

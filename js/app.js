@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 8. Unified Animation Loop with Adaptive Frame Pacing (144Hz Playing / 60Hz Idle)
   let lastFrameTime = performance.now();
   let lastRenderTime = performance.now();
-  const IDLE_FRAME_INTERVAL_MS = 1000 / 62; // ~16.1ms (60Hz smooth idle pacing on 144Hz displays)
+  const IDLE_FRAME_INTERVAL_MS = 13.0; // ~13.0ms (Locks to exact half-rate 72Hz on 144Hz displays, 60Hz on 60Hz displays, eliminating micro-stutters)
 
   function mainLoop(now) {
     requestAnimationFrame(mainLoop);

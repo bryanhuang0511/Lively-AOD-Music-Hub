@@ -10,7 +10,6 @@ class StarfieldEngine {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d', {
       alpha: false,
-      desynchronized: true,
       willReadFrequently: false
     });
 
@@ -229,17 +228,13 @@ class StarfieldEngine {
 
       } else {
         // 🪐 Idle Mode: Draw Crisp, 100% Pure-White Stars with Soft Aura Glow
-        // 1. Soft Pure-White Nebula Halo Glow
-        const glowRadius = currentRadius * 2.8;
-        const glowGrad = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
-        glowGrad.addColorStop(0, `rgba(255, 255, 255, ${(alpha * 0.45).toFixed(3)})`);
-        glowGrad.addColorStop(0.5, `rgba(255, 255, 255, ${(alpha * 0.15).toFixed(3)})`);
-        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-        ctx.beginPath();
-        ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
-        ctx.fillStyle = glowGrad;
-        ctx.fill();
+        // 1. Soft Pure-White Ambient Glow (Concentric optical diffusion - Zero GC & Zero Shader compilation churn)
+        if (alpha > 0.35) {
+          ctx.beginPath();
+          ctx.arc(px, py, currentRadius * 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${(alpha * 0.12).toFixed(3)})`;
+          ctx.fill();
+        }
 
         // 2. Pure-White Radiant Core (100% 純粹白曜核心)
         ctx.beginPath();
