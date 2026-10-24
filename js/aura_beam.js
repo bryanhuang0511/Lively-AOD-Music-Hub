@@ -14,7 +14,10 @@ class AuraBeamEngine {
     this.canvas = document.getElementById(canvasId);
     this.capsule = document.getElementById(capsuleId);
     if (!this.canvas || !this.capsule) return;
-    this.ctx = this.canvas.getContext('2d');
+    this.ctx = this.canvas.getContext('2d', {
+      desynchronized: true,
+      willReadFrequently: false
+    });
 
     this.distance = 0.0;
     this.padding = 24; // Generous canvas boundary for bloom

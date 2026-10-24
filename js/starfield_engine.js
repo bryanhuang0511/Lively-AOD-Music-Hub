@@ -8,7 +8,11 @@ class StarfieldEngine {
   constructor(canvasId, options = {}) {
     this.canvas = document.getElementById(canvasId);
     if (!this.canvas) return;
-    this.ctx = this.canvas.getContext('2d');
+    this.ctx = this.canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true,
+      willReadFrequently: false
+    });
 
     // Configuration & Tuning Parameters
     this.starCount = options.starCount || 110; // Sparse point density
