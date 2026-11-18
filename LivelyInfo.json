@@ -1,0 +1,13 @@
+{
+  "AppVersion": "1.0.0.0",
+  "Title": "音樂AOD電腦桌布視覺播放器 (v1.0.0 WebGL2 144Hz GPU 極速版)",
+  "Thumbnail": "assets/preview.png",
+  "Preview": "assets/preview.png",
+  "Desc": "極致純黑星空曲速 AOD 音樂視覺播放器 (v1.0.0)：WebGL2 GPU 實例化純白星芒與解析 SDF 虹彩光束 × 144Hz 零卡頓低 CPU × Viewport 歌詞剔除 × 多來源韓文優選同步歌詞引擎",
+  "Author": "原來如此>_<",
+  "License": "MIT",
+  "Contact": "",
+  "Type": 1,
+  "FileName": "index.html",
+  "Arguments": "--audio --system-nowplaying"
+}

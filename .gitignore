@@ -1,0 +1,17 @@
+# Build artifacts & release packages
+build/
+dist/
+releases/
+*.zip
+
+# Local dev & test caches
+node_modules/
+.webview_profile/
+scratch/
+
+# Logs & temporary files
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
